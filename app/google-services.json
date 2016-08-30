@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "1005090397243",
+    "project_id": "tidy-forest-141320"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1005090397243:android:04375a9b6569b925",
+        "android_client_info": {
+          "package_name": "com.example.saurabh.auggraffiti"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1005090397243-819atjl7iu8p3ugl0cm8aq3bhre8jfip.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.saurabh.auggraffiti",
+            "certificate_hash": "AC75184FDB276568C942AD3C64DA51F4808A7ACF"
+          }
+        },
+        {
+          "client_id": "1005090397243-jol2ogo49gknievp2622h2ugbiop2tcf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAToiMOV9vRjjG6FSNuG3S3hwOHsVkt-CE"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 1
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
