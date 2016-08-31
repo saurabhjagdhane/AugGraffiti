@@ -148,6 +148,7 @@ public class MainActivity extends AppCompatActivity implements
             //updateUI(true);
             Intent i = new Intent(MainActivity.this, secondpage.class);
             startActivity(i);
+            finish();
         } else {
             // Signed out, show unauthenticated UI.
             //updateUI(false);
@@ -240,4 +241,5 @@ public class MainActivity extends AppCompatActivity implements
      //           break;
         }
     }
+
 }

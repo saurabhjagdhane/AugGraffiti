@@ -72,60 +72,13 @@ public class secondpage extends AppCompatActivity implements
             @Override
             public void onClick(View view) {
                 signOut();
+                finish();
             }
         });
         // [END customize_button]
 
     }
-    /*
-        @Override
-        public void onStart() {
-            super.onStart();
-
-            OptionalPendingResult<GoogleSignInResult> opr = Auth.GoogleSignInApi.silentSignIn(mGoogleApiClient);
-            if (opr.isDone()) {
-                // If the user's cached credentials are valid, the OptionalPendingResult will be "done"
-                // and the GoogleSignInResult will be available instantly.
-                Log.d(TAG, "Got cached sign-in");
-                GoogleSignInResult result = opr.get();
-                handleSignInResult(result);
-            } else {
-                // If the user has not previously signed in on this device or the sign-in has expired,
-                // this asynchronous branch will attempt to sign in the user silently.  Cross-device
-                // single sign-on will occur in this branch.
-                showProgressDialog();
-                opr.setResultCallback(new ResultCallback<GoogleSignInResult>() {
-                    @Override
-                    public void onResult(GoogleSignInResult googleSignInResult) {
-                        hideProgressDialog();
-                        handleSignInResult(googleSignInResult);
-                    }
-                });
-            }
-        }
-    */
-
-    /*
-    // [START handleSignInResult]
-    private void handleSignInResult(GoogleSignInResult result) {
-        Log.d(TAG, "handleSignInResult:" + result.isSuccess());
-        if (result.isSuccess()) {
-            // Signed in successfully, show authenticated UI.
-            GoogleSignInAccount acct = result.getSignInAccount();
-            //mStatusTextView.setText(getString(R.string.signed_in_fmt, acct.getDisplayName()));
-            //updateUI(true);
-            Intent i = new Intent(MainActivity.this, secondpage.class);
-            startActivity(i);
-        } else {
-            // Signed out, show unauthenticated UI.
-            //updateUI(false);
-        }
-    }
-    // [END handleSignInResult]
-    */
-
-
-    // [START signOut]
+     // [START signOut]
     private void signOut() {
         Auth.GoogleSignInApi.signOut(mGoogleApiClient).setResultCallback(
                 new ResultCallback<Status>() {
@@ -147,7 +100,9 @@ public class secondpage extends AppCompatActivity implements
         Log.d(TAG, "onConnectionFailed:" + connectionResult);
     }
 
-
-
-
-}
+            @Override
+            public void onBackPressed() {
+                super.onBackPressed();
+                finish();
+            }
+        }
