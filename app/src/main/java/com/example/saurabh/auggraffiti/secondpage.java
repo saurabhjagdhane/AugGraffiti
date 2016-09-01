@@ -38,6 +38,15 @@ public class secondpage extends AppCompatActivity implements
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_secondpage);
 
+        Button maps_button = (Button)findViewById(R.id.button_maps);
+        maps_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent i3 = new Intent(secondpage.this,MapsActivity.class );
+                startActivity(i3);
+            }
+        });
+
 
         //findViewById(R.id.sign_out_button).setOnClickListener(this);
 
