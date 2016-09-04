@@ -1,6 +1,7 @@
 package com.example.saurabh.auggraffiti;
 
 import android.app.Dialog;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Geocoder;
@@ -121,6 +122,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 boolean check = distance[0]<circle.getRadius();
                 if(check){
                     Toast.makeText(MapsActivity.this, "My Location!", Toast.LENGTH_SHORT).show();
+                    Intent cameraIntent = new Intent(MapsActivity.this, CameraActivity.class);
+                    startActivity(cameraIntent);
                 }
             }
         });
