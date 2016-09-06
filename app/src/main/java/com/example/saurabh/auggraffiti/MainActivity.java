@@ -52,6 +52,7 @@ public class MainActivity extends AppCompatActivity implements
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestEmail()
                 .build();
+
         // [END configure_signin]
 
         // [START build_client]
@@ -146,7 +147,9 @@ public class MainActivity extends AppCompatActivity implements
             GoogleSignInAccount acct = result.getSignInAccount();
             //mStatusTextView.setText(getString(R.string.signed_in_fmt, acct.getDisplayName()));
             //updateUI(true);
+            String emailID = acct.getEmail();
             Intent i = new Intent(MainActivity.this, secondpage.class);
+            i.putExtra("EmailID", emailID);
             startActivity(i);
             finish();
         } else {

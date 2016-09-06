@@ -1,26 +1,26 @@
 package com.example.saurabh.auggraffiti;
 
 import android.app.Dialog;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Geocoder;
 import android.location.Location;
 import android.location.Address;
 import android.net.Uri;
+import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.graphics.drawable.RoundedBitmapDrawable;
-import android.support.v4.graphics.drawable.RoundedBitmapDrawableFactory;
-import android.view.animation.Transformation;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.appindexing.Action;
-import com.google.android.gms.appindexing.AppIndex;
+
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -43,8 +43,14 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.GroundOverlay;
 import com.google.android.gms.maps.model.GroundOverlayOptions;
+import com.google.android.gms.maps.model.Polygon;
+import com.google.android.gms.maps.model.PolygonOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.maps.model.TileOverlayOptions;
 import com.google.android.gms.vision.text.Text;
+
+import com.example.saurabh.auggraffiti.CollectTags.TagBinder;
 
 import java.io.IOException;
 import java.util.List;
@@ -52,17 +58,19 @@ import java.util.List;
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, com.google.android.gms.location.LocationListener {
 
     private GoogleMap mMap;
-
-    /**
-     * ATTENTION: This was auto-generated to implement the App Indexing API.
-     * See https://g.co/AppIndexing/AndroidStudio for more information.
-     */
+    private CollectTags collectTags;
+    private boolean isBoundToCollectTags = false;
+    private List<Tag> tagList;
+    private List<Circle> overlays;
+    private List<Polyline> polylines;
     private GoogleApiClient client;
+    private String emailID;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        Bundle extraData = getIntent().getExtras();
+        emailID = extraData.getString("EmailID");
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         if(googleServicesAvailable()) {
             //Toast.makeText(this, "Working!", Toast.LENGTH_SHORT).show();
@@ -113,6 +121,35 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.setMyLocationEnabled(true);
         */
 
+        // Bind to service that collects tags
+        ServiceConnection serviceConnection = new ServiceConnection() {
+            @Override
+            public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+                TagBinder tagBinder = (TagBinder) iBinder;
+                collectTags = tagBinder.getService();
+                isBoundToCollectTags = true;
+            }
+
+            @Override
+            public void onServiceDisconnected(ComponentName componentName) {
+                isBoundToCollectTags = false;
+            }
+        };
+
+        Intent collect = new Intent(this, CollectTags.class);
+        bindService(collect, serviceConnection, Context.BIND_AUTO_CREATE);
+
+        mMap.setOnCircleClickListener(new GoogleMap.OnCircleClickListener() {
+            @Override
+            public void onCircleClick(Circle circle) {
+                if(circle.getFillColor() == Color.BLUE){
+                    Intent i = new Intent(MapsActivity.this, CollectActivity.class);
+                }else{
+
+                }
+            }
+        });
+
         mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
             @Override
             public void onMapClick(LatLng latLng) {
@@ -125,13 +162,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
-        mMap.setOnMyLocationButtonClickListener(new GoogleMap.OnMyLocationButtonClickListener() {
-            @Override
-            public boolean onMyLocationButtonClick() {
-                Toast.makeText(MapsActivity.this, "Inside Map ready!", Toast.LENGTH_SHORT).show();
-                return true;
-            }
-        });
+
         client = new GoogleApiClient.Builder(this)
                 .addApi(LocationServices.API)
                 .addConnectionCallbacks(this)
@@ -195,7 +226,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     Marker marker;
-    Circle circle, overlay;
+    Circle circle;
+    Polygon overlay;
+    Polyline line;
+
     @Override
     public void onLocationChanged(Location location){
         if(location == null)
@@ -219,44 +253,104 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
 
 
-
+            // Adding place tag
             if(circle != null)
                 remove();
 
             CircleOptions copt = new CircleOptions()
                     .center(loc)
-                    .radius(80)
+                    .radius(50)
                     .fillColor(Color.BLUE)
+                    .clickable(true)
                     .strokeWidth(0);
             circle = mMap.addCircle(copt);
-            if(overlay != null){
-                overlay.remove();
-            }
-            overlay = mMap.addCircle(new CircleOptions()
-                    .center(loc)
-                    .radius(1000)
-                    .fillColor(0x15FF0000)
-                    .strokeWidth(3));
 
+            // Overlay 50m * 50m
             /*
-            MarkerOptions moptions = new MarkerOptions()
-                    .title(locality)
-                    .position(loc)
-                    .snippet("current location!");
-            marker = mMap.addMarker(moptions);
+            double latA = lat + (180/Math.PI)*((-25)/6378137);
+            double lngA = lng + (180/Math.PI)*(25/6378137)/Math.cos(Math.PI/180.0 * lat);
+            double latB = lat + (180/Math.PI)*((-25)/6378137);
+            double lngB = lng + (180/Math.PI)*((-25)/6378137)/Math.cos(Math.PI/180.0 * lat);
+            double latC = lat + (180/Math.PI)*(25/6378137);
+            double lngC = lng + (180/Math.PI)*((-25)/6378137)/Math.cos(Math.PI/180.0 * lat);
+            double latD = lat + (180/Math.PI)*(25/6378137);
+            double lngD = lng + (180/Math.PI)*(25/6378137)/Math.cos(Math.PI/180.0 * lat);
             */
+            overlay = mMap.addPolygon(new PolygonOptions()
+                    .fillColor(0x15FF0000)
+                    .strokeWidth(3)
+                    .add(new LatLng(lat-0.0025, lng+0.0025))
+                    .add(new LatLng(lat-0.0025, lng-0.0025))
+                    .add(new LatLng(lat+0.0025, lng-0.0025))
+                    .add(new LatLng(lat+0.0025, lng+0.0025)));
+
+
+            // Adding collect tags
+            collectTags.getNearbyTags("ssshett3@asu.edu", lat, lng);
+            String response = collectTags.getPostResponse();
+            if(response != null){
+                String parameters[] = response.split(",");
+                int i = 0;
+                if(parameters.length/3 == 0){
+                    while(i < parameters.length){
+                        String id = parameters[i++];
+                        double latitude = Double.parseDouble(parameters[i++]);
+                        double longitude = Double.parseDouble(parameters[i++]);
+                        Tag t = new Tag(id ,latitude, longitude);
+                        tagList.add(t);
+                        if(overlays.size() > 0) {
+                            removeTags();
+                        }
+                        addOverlays(latitude, longitude);
+                        addLines(latitude, longitude, lat, lng);
+                    }
+                }
+            }
+
             CameraUpdate c = CameraUpdateFactory.newLatLngZoom(loc, 15);
             mMap.animateCamera(c);
         }
 
     }
 
+    public void addOverlays(Double latitude, Double longitude){
+        LatLng loc = new LatLng(latitude, longitude);
+        CircleOptions copt = new CircleOptions()
+                .center(loc)
+                .radius(80)
+                .fillColor(0xFFA500)
+                .clickable(true)
+                .strokeWidth(0);
+        circle = mMap.addCircle(copt);
+        overlays.add(circle);
+    }
+
+    public void addLines(Double cLatitude, Double cLongitude, Double pLatitude, Double pLongitude){
+        LatLng loc_c = new LatLng(cLatitude, cLongitude);
+        LatLng loc_p = new LatLng(pLatitude, pLongitude);
+        line = mMap.addPolyline(new PolylineOptions()
+                .add(loc_p)
+                .add(loc_c)
+                .color(Color.BLACK));
+        polylines.add(line);
+    }
 
     public void remove(){
         circle.remove();
         circle = null;
         overlay.remove();
         overlay = null;
+    }
+
+    public void removeTags(){
+        int i = 0;
+        while(i < overlays.size()){
+            overlays.get(i).remove();
+            polylines.get(i).remove();
+            i++;
+        }
+        overlay = null;
+        line = null;
     }
 
 
