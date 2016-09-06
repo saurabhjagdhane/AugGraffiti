@@ -35,9 +35,8 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
         showProgressDialog();
+        setContentView(R.layout.activity_main);
 
         // Views
         //mStatusTextView = (TextView) findViewById(R.id.status);
@@ -52,7 +51,6 @@ public class MainActivity extends AppCompatActivity implements
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestEmail()
                 .build();
-
         // [END configure_signin]
 
         // [START build_client]
@@ -99,7 +97,7 @@ public class MainActivity extends AppCompatActivity implements
             });
         }
     }
-/*
+
     @Override
     public void onStart() {
         super.onStart();
@@ -125,7 +123,7 @@ public class MainActivity extends AppCompatActivity implements
             });
         }
     }
-*/
+
     // [START onActivityResult]
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -147,9 +145,7 @@ public class MainActivity extends AppCompatActivity implements
             GoogleSignInAccount acct = result.getSignInAccount();
             //mStatusTextView.setText(getString(R.string.signed_in_fmt, acct.getDisplayName()));
             //updateUI(true);
-            String emailID = acct.getEmail();
-            Intent i = new Intent(MainActivity.this, secondpage.class);
-            i.putExtra("EmailID", emailID);
+            Intent i = new Intent(MainActivity.this, MapsActivity.class);
             startActivity(i);
             finish();
         } else {

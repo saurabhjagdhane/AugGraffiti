@@ -46,4 +46,5 @@
     <string name="server_client_id">819802418576-le1idid59fif1p8kr3h238og5ssnp2pi.apps.googleusercontent.com</string>
     <string name="title_activity_secondpage">secondpage</string>
     <string name="title_activity_maps">Map</string>
+    <string name="title_activity_drawing_screen">DrawingScreen</string>
 </resources>
