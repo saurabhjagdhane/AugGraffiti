@@ -31,6 +31,7 @@ public class MainActivity extends AppCompatActivity implements
     private GoogleApiClient mGoogleApiClient;
     //private TextView mStatusTextView;
     private ProgressDialog mProgressDialog;
+    private Button bypass;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,6 +39,14 @@ public class MainActivity extends AppCompatActivity implements
         showProgressDialog();
         setContentView(R.layout.activity_main);
 
+        bypass = (Button)findViewById(R.id.button_bypass);
+        bypass.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent i1 = new Intent (MainActivity.this, MapsActivity.class);
+                startActivity(i1);
+            }
+        });
         // Views
         //mStatusTextView = (TextView) findViewById(R.id.status);
 
