@@ -7,12 +7,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.location.Geocoder;
 import android.location.Location;
 import android.location.Address;
 import android.net.Uri;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
@@ -21,6 +24,8 @@ import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.graphics.drawable.RoundedBitmapDrawable;
 import android.support.v4.graphics.drawable.RoundedBitmapDrawableFactory;
+import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.animation.Transformation;
 import android.widget.Button;
@@ -62,31 +67,56 @@ import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.maps.model.TileOverlayOptions;
 import com.google.android.gms.vision.text.Text;
 
-import com.example.saurabh.auggraffiti.CollectTags.TagBinder;
+import com.android.volley.AuthFailureError;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
 
+import java.io.FileDescriptor;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.RunnableFuture;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, com.google.android.gms.location.LocationListener {
 
-    private GoogleMap mMap;
+    private static GoogleMap mMap = null;
     private static final String TAG = "SignInActivity";
     private static final int RC_SIGN_IN = 9001;
 
     private GoogleApiClient mGoogleApiClient;
     //private TextView mStatusTextView;
     private ProgressDialog mProgressDialog;
-    private CollectTags collectTags;
     private boolean isBoundToCollectTags = false;
     private List<Tag> tagList;
-    private List<Circle> overlays;
+    private List<Circle> circles;
     private List<Polyline> polylines;
     private GoogleApiClient client;
-    private String emailID;
+    private static String emailID;
+    private  ServiceConnection serviceConnection;
+    private final static String urlNearByTags = "http://roblkw.com/msa/neartags.php";
+    private final static String urlGetScore = "http://roblkw.com/msa/getscore.php";
+    private String postResponse;
+    private String score;
+    private static RequestQueue rq;
+
+    private static Double lat;
+    private static Double lng;
+    private static boolean isRunning = false;
+    private static boolean isResumed = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        tagList = new ArrayList<Tag>();
+        circles = new ArrayList<Circle>();
+        polylines = new ArrayList<Polyline>();
+
         Bundle extraData = getIntent().getExtras();
         emailID = extraData.getString("EmailID");
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
@@ -138,6 +168,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
         // [END customize_button]
+        /*
+        if(mMap != null){
+            getScore();
+            startDisplayTags();
+        }
+        */
     }
 
     // [START signOut]
@@ -167,6 +203,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return  false;
     }
 
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+    }
+
     /**
      * Manipulates the map once available.
      * This callback is triggered when the map is ready to be used.
@@ -179,67 +220,38 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
-        Toast.makeText(this, "Inside Map ready!", Toast.LENGTH_SHORT).show();
+       // Toast.makeText(this, "Inside Map ready!", Toast.LENGTH_SHORT).show();
 
         mMap = googleMap;
-        /*
-        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                && ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            return;
-        }
-        mMap.setMyLocationEnabled(true);
-        */
+        Log.d(TAG, "handleSignInResult:" + emailID);
+        rq = RequestQueueSingleton.getInstance(this.getApplicationContext()).getRequestQueue();
 
-        // Bind to service that collects tags
-        ServiceConnection serviceConnection = new ServiceConnection() {
-            @Override
-            public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-                TagBinder tagBinder = (TagBinder) iBinder;
-                collectTags = tagBinder.getService();
-                isBoundToCollectTags = true;
-            }
-
-            @Override
-            public void onServiceDisconnected(ComponentName componentName) {
-                isBoundToCollectTags = false;
-            }
-        };
-
-        Intent collect = new Intent(this, CollectTags.class);
-        bindService(collect, serviceConnection, Context.BIND_AUTO_CREATE);
 
         mMap.setOnCircleClickListener(new GoogleMap.OnCircleClickListener() {
             @Override
             public void onCircleClick(Circle circle) {
                 if(circle.getFillColor() == Color.BLUE){
                     Intent i = new Intent(MapsActivity.this, CameraActivity.class);
+                    i.putExtra("EmailID", emailID);
+                    startActivity(i);
+                    finish();
                 }else{
+                    float[] distance = new float[1];
+                    Location.distanceBetween(lat, lng, circle.getCenter().latitude, circle.getCenter().longitude, distance);
+                    boolean check = distance[0] <= 5;
 
+                    if(check){
+                        Toast.makeText(MapsActivity.this, "Distance:"+distance[0]+", Within 5m!", Toast.LENGTH_SHORT).show();
+                        Intent i = new Intent(MapsActivity.this, CollectActivity.class);
+                        startActivity(i);
+                        finish();
+                    }else{
+                        Toast.makeText(MapsActivity.this, "Distance:"+distance[0]+", Not within 5m to collect!", Toast.LENGTH_SHORT).show();
+                    }
                 }
             }
         });
 
-        mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
-            @Override
-            public void onMapClick(LatLng latLng) {
-                float[] distance = new float[1];
-                Location.distanceBetween(latLng.latitude, latLng.longitude, circle.getCenter().latitude, circle.getCenter().longitude, distance);
-                boolean check = distance[0]<circle.getRadius();
-                if(check){
-                    Toast.makeText(MapsActivity.this, "My Location!", Toast.LENGTH_SHORT).show();
-                    Intent cameraIntent = new Intent(MapsActivity.this, CameraActivity.class);
-                    startActivity(cameraIntent);
-                }
-            }
-        });
-
-        mMap.setOnMyLocationButtonClickListener(new GoogleMap.OnMyLocationButtonClickListener() {
-            @Override
-            public boolean onMyLocationButtonClick() {
-                Toast.makeText(MapsActivity.this, "Inside Map ready!", Toast.LENGTH_SHORT).show();
-                return true;
-            }
-        });
         client = new GoogleApiClient.Builder(this)
                 .addApi(LocationServices.API)
                 .addConnectionCallbacks(this)
@@ -247,25 +259,138 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .build();
         client.connect();
 
+        if(!isRunning){
+            isRunning = true;
+            getScore();
+            startDisplayTags();
+        }
+    }
 
-        /*
-        // Add a marker in Sydney and move the camera
-        LatLng sydney = new LatLng(-34, 151);
-        mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
-        */
-        /*
-        LatLng NEWARK = new LatLng(40.714086, -74.228697);
-        CameraUpdate c = CameraUpdateFactory.newLatLngZoom(NEWARK, 15);
-        mMap.moveCamera(c);
-        */
-        /*
-        GroundOverlayOptions newarkMap = new GroundOverlayOptions()
-                .image(BitmapDescriptorFactory.fromResource(R.drawable.image))
-                .position(NEWARK, 8600f, 6500f);
-// Add an overlay to the map, retaining a handle to the GroundOverlay object.
-        GroundOverlay imageOverlay = mMap.addGroundOverlay(newarkMap);
-        */
+
+
+
+    Handler handlerPlace = new Handler(){
+        @Override
+        public void handleMessage(Message msg) {
+            addOverlays();
+            //addLines(latitude, longitude, lat, lng);
+        }
+    };
+
+    Handler handlerRemove = new Handler(){
+        @Override
+        public void handleMessage(Message msg) {
+            removeTags();
+        }
+    };
+
+
+    Double latitude;
+    Double longitude;
+    public void startDisplayTags() {
+        //Toast.makeText(MapsActivity.this, "Tags Thread!, isRunning = "+isRunning, Toast.LENGTH_SHORT).show();
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (isRunning) {
+                    synchronized (this) {
+                        try {
+                            wait(1500);
+                            //getNearbyTags("ssshett3@asu.edu", lat, lng);
+                            getNearbyTags();
+                            if(circles.size() > 0) {
+                                handlerRemove.sendEmptyMessage(0);
+                            }
+                            handlerPlace.sendEmptyMessage(0);
+
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+        });
+        t.start();
+    }
+
+    TextView scoreText;
+    Handler handlerScore = new Handler(){
+        @Override
+        public void handleMessage(Message msg) {
+            scoreText = (TextView)findViewById(R.id.scoreNumber);
+            if(score != null){
+                if(score.matches("[0-9]+")) {
+                    scoreText.setText(score);
+                }
+            }
+        }
+    };
+
+    public void getScore(){
+        //Toast.makeText(MapsActivity.this, "Score Thread!, isRunning = "+isRunning, Toast.LENGTH_SHORT).show();
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (isRunning) {
+                    synchronized (this) {
+                        try {
+                            wait(1000);
+                            StringRequest stringRequest = new StringRequest(Request.Method.POST, urlGetScore, new Response.Listener<String>() {
+                                @Override
+                                public void onResponse(String response) {
+                                    score = response;
+                                }
+                            }, new Response.ErrorListener() {
+                                @Override
+                                public void onErrorResponse(VolleyError error) {
+
+                                }
+                            }){
+                                @Override
+                                protected Map<String, String> getParams() throws AuthFailureError {
+                                    Map<String, String> param_map = new HashMap<String, String>();
+                                    param_map.put("email", "ssshett3@asu.edu");
+                                    return param_map;
+                                }
+                            };
+                            stringRequest.setTag(TAG);
+                            RequestQueueSingleton.getInstance(MapsActivity.this).addToRequestQueue(stringRequest);
+                            handlerScore.sendEmptyMessage(0);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+        });
+        t.start();
+    }
+
+    public void getNearbyTags(){
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, urlNearByTags, new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+                //postResponse = "tag1, 33.423935, -111.927484, tag2, 33.420713, -111.922923, tag3, 33.420561, -111.920069";
+                postResponse = response;
+                //Log.d(TAG, "response:" + postResponse);
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+
+            }
+        }){
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                Map<String, String> param_map = new HashMap<String, String>();
+                param_map.put("email", emailID);
+                param_map.put("loc_long", String.valueOf(lng));
+                param_map.put("loc_lat", String.valueOf(lat));
+                return param_map;
+            }
+        };
+        stringRequest.setTag(TAG);
+        RequestQueueSingleton.getInstance(this).addToRequestQueue(stringRequest);
     }
 
 
@@ -274,7 +399,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public void onConnected(Bundle bundle) {
-        Toast.makeText(this, "inside onConnected!", Toast.LENGTH_SHORT).show();
+        //Toast.makeText(this, "inside onConnected!", Toast.LENGTH_SHORT).show();
         lr = LocationRequest.create();
         lr.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         lr.setInterval(1000);
@@ -302,7 +427,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     Marker marker;
-    Circle circle;
+    Circle circle_p;
+    Circle circle_c;
     Polygon overlay;
     Polyline line;
 
@@ -311,26 +437,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if(location == null)
             Toast.makeText(this, "Cant get current location!", Toast.LENGTH_LONG).show();
         else{
-            Geocoder g = new Geocoder(this);
-
-            double lng = location.getLongitude();
-            double lat = location.getLatitude();
+            lng = location.getLongitude();
+            lat = location.getLatitude();
+            lat = 33.419351;
+            lng = -111.938083;
             LatLng loc = new LatLng(lat, lng);
+            //ong=-111.938083&loc_lat=33.419351
 
             List<Address> l;
             Address a;
-            String locality;
-            try {
-                l = g.getFromLocation(lat, lng, 1);
-                a = l.get(0);
-                locality = a.getLocality();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
 
             // Adding place tag
-            if(circle != null)
+            if(circle_p != null)
                 remove();
 
             CircleOptions copt = new CircleOptions()
@@ -339,19 +457,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     .fillColor(Color.BLUE)
                     .clickable(true)
                     .strokeWidth(0);
-            circle = mMap.addCircle(copt);
+            circle_p = mMap.addCircle(copt);
 
             // Overlay 50m * 50m
             /*
-            double latA = lat + (180/Math.PI)*((-25)/6378137);
-            double lngA = lng + (180/Math.PI)*(25/6378137)/Math.cos(Math.PI/180.0 * lat);
-            double latB = lat + (180/Math.PI)*((-25)/6378137);
-            double lngB = lng + (180/Math.PI)*((-25)/6378137)/Math.cos(Math.PI/180.0 * lat);
-            double latC = lat + (180/Math.PI)*(25/6378137);
-            double lngC = lng + (180/Math.PI)*((-25)/6378137)/Math.cos(Math.PI/180.0 * lat);
-            double latD = lat + (180/Math.PI)*(25/6378137);
-            double lngD = lng + (180/Math.PI)*(25/6378137)/Math.cos(Math.PI/180.0 * lat);
-            */
             overlay = mMap.addPolygon(new PolygonOptions()
                     .fillColor(0x15FF0000)
                     .strokeWidth(3)
@@ -359,29 +468,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     .add(new LatLng(lat-0.0025, lng-0.0025))
                     .add(new LatLng(lat+0.0025, lng-0.0025))
                     .add(new LatLng(lat+0.0025, lng+0.0025)));
-
-
-            // Adding collect tags
-            collectTags.getNearbyTags("ssshett3@asu.edu", lat, lng);
-            String response = collectTags.getPostResponse();
-            if(response != null){
-                String parameters[] = response.split(",");
-                int i = 0;
-                if(parameters.length/3 == 0){
-                    while(i < parameters.length){
-                        String id = parameters[i++];
-                        double latitude = Double.parseDouble(parameters[i++]);
-                        double longitude = Double.parseDouble(parameters[i++]);
-                        Tag t = new Tag(id ,latitude, longitude);
-                        tagList.add(t);
-                        if(overlays.size() > 0) {
-                            removeTags();
-                        }
-                        addOverlays(latitude, longitude);
-                        addLines(latitude, longitude, lat, lng);
-                    }
-                }
-            }
+            */
 
             CameraUpdate c = CameraUpdateFactory.newLatLngZoom(loc, 15);
             mMap.animateCamera(c);
@@ -389,16 +476,32 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
-    public void addOverlays(Double latitude, Double longitude){
-        LatLng loc = new LatLng(latitude, longitude);
-        CircleOptions copt = new CircleOptions()
-                .center(loc)
-                .radius(80)
-                .fillColor(0xFFA500)
-                .clickable(true)
-                .strokeWidth(0);
-        circle = mMap.addCircle(copt);
-        overlays.add(circle);
+    public void addOverlays(){
+        if(postResponse != null){
+            String parameters[] = postResponse.split(",");
+            int i = 0;
+            if(parameters.length%3 == 0){
+                while(i < parameters.length){
+                    String id = parameters[i++];
+                    longitude = Double.parseDouble(parameters[i++]);
+                    latitude = Double.parseDouble(parameters[i++]);
+                    Tag t = new Tag(id ,latitude, longitude);
+
+                    //tagList.add(t);
+
+                    LatLng loc = new LatLng(latitude, longitude);
+                     CircleOptions copt = new CircleOptions()
+                        .center(loc)
+                        .radius(40)
+                        .fillColor(Color.GREEN)
+                        .clickable(true)
+                        .strokeWidth(0);
+                    circle_c = mMap.addCircle(copt);
+                    circles.add(circle_c);
+                    addLines(latitude, longitude, lat, lng);
+                }
+            }
+        }
     }
 
     public void addLines(Double cLatitude, Double cLongitude, Double pLatitude, Double pLongitude){
@@ -412,28 +515,68 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     public void remove(){
-        circle.remove();
-        circle = null;
-        overlay.remove();
-        overlay = null;
+        circle_p.remove();
+        circle_p = null;
+        //overlay.remove();
+        //overlay = null;
     }
 
     public void removeTags(){
         int i = 0;
-        while(i < overlays.size()){
-            overlays.get(i).remove();
+        while(i < circles.size()){
+            circles.get(i).remove();
             polylines.get(i).remove();
             i++;
         }
-        overlay = null;
+        circle_c = null;
         line = null;
     }
 
     @Override
     public void onBackPressed() {
-        super.onBackPressed();
+        // Do nothing...can go back to sign-in page only using sign out button
+        //super.onBackPressed();
+        //finish();
+        //return;
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        //Toast.makeText(MapsActivity.this, "On pause!"+isRunning, Toast.LENGTH_SHORT).show();
         finish();
     }
 
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        if(rq != null){
+            rq.cancelAll(TAG);
+        }
+        /*
+        if(!isResumed) {
+            isRunning = false;
+        }else{
+            isResumed = false;
+        }
+        */
+        //Toast.makeText(MapsActivity.this, "On stop!"+isRunning, Toast.LENGTH_SHORT).show();
+        finish();
+    }
+
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        //Toast.makeText(MapsActivity.this, "On start!"+isRunning, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        isResumed = true;
+        //Toast.makeText(MapsActivity.this, "On resume!"+isRunning, Toast.LENGTH_SHORT).show();
+    }
 
 }

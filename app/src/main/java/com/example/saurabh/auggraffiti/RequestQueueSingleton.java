@@ -13,8 +13,8 @@ public class RequestQueueSingleton {
     private static Context context;
 
     private RequestQueueSingleton(Context context){
-        requestQueue = getRequestQueue();
         this.context = context;
+        requestQueue = getRequestQueue();
     }
 
     public static synchronized RequestQueueSingleton getInstance(Context context){

@@ -4,23 +4,33 @@ package com.example.saurabh.auggraffiti;
  * Created by Saurabh on 05-09-2016.
  */
 
+import android.*;
+import android.Manifest;
+import android.app.Activity;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.hardware.Camera;
+import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
 import java.io.IOException;
 
+import static android.support.v4.app.ActivityCompat.requestPermissions;
+
 /** A basic Camera preview class */
 public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback {
+    //private static final String[] MY_CAMERA_REQUEST_CODE = {"34"};
     private SurfaceHolder mHolder;
-    private Camera mCamera;
+    private static Camera mCamera = null;
     public String TAG = "Debugging";
+    private static Context ctx;
 
     public CameraPreview(Context context, Camera camera) {
         super(context);
+        ctx = context;
         mCamera = camera;
 
         // Install a SurfaceHolder.Callback so we get notified when the
@@ -34,8 +44,16 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     public void surfaceCreated(SurfaceHolder holder) {
         // The Surface has been created, now tell the camera where to draw the preview.
         // The Surface has been created, acquire the camera and tell it where to draw.
-        mCamera = Camera.open();
+        try
+        {
+            /*
+            if (mCamera != null) {
+                mCamera.release();
+                mCamera = null;
+            }
 
+        mCamera = Camera.open(Camera.CameraInfo.CAMERA_FACING_BACK);
+        */
         Camera.Parameters params = mCamera.getParameters();
 
         if (this.getResources().getConfiguration().orientation != Configuration.ORIENTATION_LANDSCAPE)
@@ -44,8 +62,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             mCamera.setDisplayOrientation(90);
         }
 
-        try
-        {
+
             mCamera.setPreviewDisplay(holder);
         }
         catch (IOException exception)

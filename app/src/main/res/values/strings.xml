@@ -47,4 +47,5 @@
     <string name="title_activity_secondpage">secondpage</string>
     <string name="title_activity_maps">Map</string>
     <string name="title_activity_drawing_screen">DrawingScreen</string>
+    <string name="default_score">0</string>
 </resources>

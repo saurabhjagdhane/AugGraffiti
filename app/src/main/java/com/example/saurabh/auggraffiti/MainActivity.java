@@ -10,16 +10,26 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.Request;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
 import com.google.android.gms.auth.api.Auth;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.auth.api.signin.GoogleSignInResult;
 import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.Scopes;
 import com.google.android.gms.common.SignInButton;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.OptionalPendingResult;
 import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.common.api.Scope;
 import com.google.android.gms.common.api.Status;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity implements
         GoogleApiClient.OnConnectionFailedListener,
@@ -31,22 +41,15 @@ public class MainActivity extends AppCompatActivity implements
     private GoogleApiClient mGoogleApiClient;
     //private TextView mStatusTextView;
     private ProgressDialog mProgressDialog;
-    private Button bypass;
+    private static final String checkin_url = "http://roblkw.com/msa/login.php";
+    private String checkInResponse;
+    private static String emailID;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        showProgressDialog();
+        //showProgressDialog();
         setContentView(R.layout.activity_main);
-
-        bypass = (Button)findViewById(R.id.button_bypass);
-        bypass.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent i1 = new Intent (MainActivity.this, MapsActivity.class);
-                startActivity(i1);
-            }
-        });
         // Views
         //mStatusTextView = (TextView) findViewById(R.id.status);
 
@@ -58,6 +61,10 @@ public class MainActivity extends AppCompatActivity implements
         // Configure sign-in to request the user's ID, email address, and basic
         // profile. ID and basic profile are included in DEFAULT_SIGN_IN.
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                //.requestIdToken(MainActivity.this.getResources().getString(R.string.server_client_id))
+                .requestServerAuthCode("1005090397243-jol2ogo49gknievp2622h2ugbiop2tcf.apps.googleusercontent.com")
+                //.requestScopes(new Scope(Scopes.PLUS_LOGIN))
+                //.requestScopes(new Scope(Scopes.PLUS_ME))
                 .requestEmail()
                 .build();
         // [END configure_signin]
@@ -149,20 +156,61 @@ public class MainActivity extends AppCompatActivity implements
     // [START handleSignInResult]
     private void handleSignInResult(GoogleSignInResult result) {
         Log.d(TAG, "handleSignInResult:" + result.isSuccess());
+        Log.d(TAG, "handleSignInResult:" + result.getStatus());
         if (result.isSuccess()) {
             // Signed in successfully, show authenticated UI.
+
             GoogleSignInAccount acct = result.getSignInAccount();
+            emailID = acct.getEmail();
+            //System.out.println(emailID);
             //mStatusTextView.setText(getString(R.string.signed_in_fmt, acct.getDisplayName()));
             //updateUI(true);
-            Intent i = new Intent(MainActivity.this, MapsActivity.class);
-            startActivity(i);
-            finish();
+            //checkUserInDB(emailID);
+            //if(checkInResponse == "0") {
+
+            checkUserInDB(emailID);
+            Log.d(TAG, "handleSignInResult:" + "login.php returned:" + checkInResponse);
+
+            //}
         } else {
             // Signed out, show unauthenticated UI.
             //updateUI(false);
         }
     }
     // [END handleSignInResult]
+
+
+    // [START checking user in Database]
+    public void checkUserInDB(final String emailID){
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, checkin_url, new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+                checkInResponse = response;
+                if(checkInResponse.equals("0")){
+                    Intent i = new Intent(MainActivity.this, MapsActivity.class);
+                    i.putExtra("EmailID", emailID);
+                    startActivity(i);
+                    finish();
+                }
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+
+            }
+        }){
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                Map<String, String> param_map = new HashMap<String, String>();
+                param_map.put("email", emailID);
+                return param_map;
+            }
+        };
+        stringRequest.setTag(TAG);
+        RequestQueueSingleton.getInstance(this).addToRequestQueue(stringRequest);
+    }
+    // [END checking user in Database]
+
 
     // [START signIn]
     private void signIn() {
@@ -216,7 +264,7 @@ public class MainActivity extends AppCompatActivity implements
             mProgressDialog.setIndeterminate(true);
         }
 
-        mProgressDialog.show();
+       // mProgressDialog.show();
     }
 
     private void hideProgressDialog() {

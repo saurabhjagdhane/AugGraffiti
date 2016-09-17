@@ -17,7 +17,7 @@
           "client_type": 1,
           "android_info": {
             "package_name": "com.example.saurabh.auggraffiti",
-            "certificate_hash": "AC75184FDB276568C942AD3C64DA51F4808A7ACF"
+            "certificate_hash": "7E3219E07BD816014A9B871B841EB26F6E4808D1"
           }
         },
         {
@@ -27,7 +27,7 @@
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyAToiMOV9vRjjG6FSNuG3S3hwOHsVkt-CE"
+          "current_key": "AIzaSyBL-KM-rwc9xlp9RWJpx5aVMfzQBLK9zFc"
         }
       ],
       "services": {
