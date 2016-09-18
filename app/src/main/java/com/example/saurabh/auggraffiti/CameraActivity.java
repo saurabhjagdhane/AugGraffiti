@@ -95,8 +95,6 @@ public class CameraActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
-        mCamera.release();
-        mCamera = null;
     }
 
     @Override
@@ -105,5 +103,7 @@ public class CameraActivity extends AppCompatActivity {
         Intent i = new Intent(this, MapsActivity.class);
         i.putExtra("EmailID", emailID);
         startActivity(i);
+        mCamera.release();
+        mCamera = null;
     }
 }

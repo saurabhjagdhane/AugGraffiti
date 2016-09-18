@@ -47,7 +47,9 @@ android:layout_gravity="bottom"
         android:layout_toEndOf="@+id/scoreText"
         android:layout_alignBottom="@+id/scoreText"
         android:layout_alignTop="@+id/scoreText"
-        android:layout_toRightOf="@+id/scoreText" />
+        android:layout_toRightOf="@+id/scoreText"
+        android:textColor="#e97e27"
+        android:textSize="25dp" />
 
     <TextView
         android:layout_width="wrap_content"
@@ -58,7 +60,9 @@ android:layout_gravity="bottom"
         android:layout_alignBottom="@+id/signout_button"
         android:layout_toLeftOf="@+id/gallery_button"
         android:layout_toStartOf="@+id/gallery_button"
-        android:layout_alignParentTop="true" />
+        android:layout_alignParentTop="true"
+        android:textColor="#ec830a"
+        android:textSize="25dp" />
 
 
 </RelativeLayout>

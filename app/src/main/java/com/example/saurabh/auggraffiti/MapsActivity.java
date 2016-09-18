@@ -14,7 +14,6 @@ import android.location.Location;
 import android.location.Address;
 import android.net.Uri;
 import android.os.Handler;
-import android.os.IBinder;
 import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -27,13 +26,10 @@ import android.support.v4.graphics.drawable.RoundedBitmapDrawableFactory;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
-import android.view.animation.Transformation;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.appindexing.Action;
-import com.google.android.gms.appindexing.AppIndex;
 import com.google.android.gms.auth.api.Auth;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.ConnectionResult;
@@ -108,7 +104,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static Double lat;
     private static Double lng;
     private static boolean isRunning = false;
-    private static boolean isResumed = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -189,6 +184,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
     // [END signOut]
 
+    // [START googleServicesAvailable]
+    //checks if google service is available
     public boolean googleServicesAvailable(){
         GoogleApiAvailability g = GoogleApiAvailability.getInstance();
         int available = g.isGooglePlayServicesAvailable(this);
@@ -202,11 +199,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         return  false;
     }
+    // [END googleServicesAvailable]
 
+    // [START onConfigurationChanged]
+    // for screen orientation change
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
     }
+    // [START onConfigurationChanged]
 
     /**
      * Manipulates the map once available.
@@ -259,16 +260,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .build();
         client.connect();
 
-        if(!isRunning){
-            isRunning = true;
-            getScore();
-            startDisplayTags();
-        }
+        isRunning = true;
+        getScore();
+        startDisplayTags();
+
     }
 
 
 
-
+    // handler for placing tags in 50m*50m
     Handler handlerPlace = new Handler(){
         @Override
         public void handleMessage(Message msg) {
@@ -277,6 +277,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     };
 
+    // handler for removing duplicate tags in 50m*50m
     Handler handlerRemove = new Handler(){
         @Override
         public void handleMessage(Message msg) {
@@ -287,6 +288,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     Double latitude;
     Double longitude;
+    /* [START startDisplayTags]
+    checks if google service is available  */
     public void startDisplayTags() {
         //Toast.makeText(MapsActivity.this, "Tags Thread!, isRunning = "+isRunning, Toast.LENGTH_SHORT).show();
         Thread t = new Thread(new Runnable() {
@@ -327,7 +330,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     };
 
     public void getScore(){
-        //Toast.makeText(MapsActivity.this, "Score Thread!, isRunning = "+isRunning, Toast.LENGTH_SHORT).show();
+       // Toast.makeText(MapsActivity.this, "Score Thread!, isRunning = "+isRunning, Toast.LENGTH_SHORT).show();
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -372,7 +375,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             public void onResponse(String response) {
                 //postResponse = "tag1, 33.423935, -111.927484, tag2, 33.420713, -111.922923, tag3, 33.420561, -111.920069";
                 postResponse = response;
-                //Log.d(TAG, "response:" + postResponse);
+                Log.d(TAG, "response:" + postResponse);
             }
         }, new Response.ErrorListener() {
             @Override
@@ -453,7 +456,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             CircleOptions copt = new CircleOptions()
                     .center(loc)
-                    .radius(50)
+                    .radius(5)
                     .fillColor(Color.BLUE)
                     .clickable(true)
                     .strokeWidth(0);
@@ -470,7 +473,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     .add(new LatLng(lat+0.0025, lng+0.0025)));
             */
 
-            CameraUpdate c = CameraUpdateFactory.newLatLngZoom(loc, 15);
+            CameraUpdate c = CameraUpdateFactory.newLatLngZoom(loc, 19);
             mMap.animateCamera(c);
         }
 
@@ -492,7 +495,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     LatLng loc = new LatLng(latitude, longitude);
                      CircleOptions copt = new CircleOptions()
                         .center(loc)
-                        .radius(40)
+                        .radius(5)
                         .fillColor(Color.GREEN)
                         .clickable(true)
                         .strokeWidth(0);
@@ -510,6 +513,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         line = mMap.addPolyline(new PolylineOptions()
                 .add(loc_p)
                 .add(loc_c)
+                .width(3)
                 .color(Color.BLACK));
         polylines.add(line);
     }
@@ -541,42 +545,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     @Override
-    protected void onPause() {
-        super.onPause();
-        //Toast.makeText(MapsActivity.this, "On pause!"+isRunning, Toast.LENGTH_SHORT).show();
-        finish();
-    }
-
-    @Override
     protected void onStop() {
         super.onStop();
 
         if(rq != null){
             rq.cancelAll(TAG);
         }
-        /*
-        if(!isResumed) {
-            isRunning = false;
-        }else{
-            isResumed = false;
-        }
-        */
-        //Toast.makeText(MapsActivity.this, "On stop!"+isRunning, Toast.LENGTH_SHORT).show();
-        finish();
     }
-
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        //Toast.makeText(MapsActivity.this, "On start!"+isRunning, Toast.LENGTH_SHORT).show();
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        isResumed = true;
-        //Toast.makeText(MapsActivity.this, "On resume!"+isRunning, Toast.LENGTH_SHORT).show();
-    }
-
 }

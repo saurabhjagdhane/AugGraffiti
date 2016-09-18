@@ -27,6 +27,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     private static Camera mCamera = null;
     public String TAG = "Debugging";
     private static Context ctx;
+    private static boolean isOpened = false;
 
     public CameraPreview(Context context, Camera camera) {
         super(context);
@@ -53,8 +54,14 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             }
 
         mCamera = Camera.open(Camera.CameraInfo.CAMERA_FACING_BACK);
-        */
+
+
+        if(mCamera == null){
+            mCamera = Camera.open(Camera.CameraInfo.CAMERA_FACING_BACK);
+            isOpened =true;
+        } */
         Camera.Parameters params = mCamera.getParameters();
+
 
         if (this.getResources().getConfiguration().orientation != Configuration.ORIENTATION_LANDSCAPE)
         {
@@ -75,6 +82,10 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
     public void surfaceDestroyed(SurfaceHolder holder) {
         // empty. Take care of releasing the Camera preview in your activity.
+        //if(isOpened) {
+        //    mCamera.release();
+        //    mCamera = null;
+        //}
     }
 
     public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
