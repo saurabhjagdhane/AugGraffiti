@@ -1,3 +1,9 @@
+/*
+    This is the sample drawing activity which would be enhanced and explained in upcoming phase.
+    This can be a part of placing a tag activity. To be decided....
+    Description to be updated by 5th October. Stay tuned...!!
+ */
+
 package com.example.saurabh.auggraffiti;
 
 import android.content.Context;
@@ -7,10 +13,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.view.MotionEvent;
 import android.view.View;
 

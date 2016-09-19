@@ -1,14 +1,24 @@
+/*
+Welcome to the very first Activity of brand new, exciting Augmented Reality Art Application (AugGraffiti).
+This project is being developed by 2 graduate students in Computer Engineering at Arizona State University.
+1. Saurabh Jagdhane
+2. Sandesh Shetty
+*/
+
+/*
+This actvity allows the user to sign-in to the application using gmail address.
+Google Sign-in API is used for logging in to the application.
+This actvity provides only a single button to Sign-in.
+*/
+
 package com.example.saurabh.auggraffiti;
 
 import android.app.ProgressDialog;
 import android.content.Intent;
-import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
-import android.widget.TextView;
 
 import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
@@ -20,27 +30,25 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.auth.api.signin.GoogleSignInResult;
 import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.Scopes;
 import com.google.android.gms.common.SignInButton;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.OptionalPendingResult;
 import com.google.android.gms.common.api.ResultCallback;
-import com.google.android.gms.common.api.Scope;
-import com.google.android.gms.common.api.Status;
 
 import java.util.HashMap;
 import java.util.Map;
 
+//Activity to use Google user's ID.
 public class MainActivity extends AppCompatActivity implements
         GoogleApiClient.OnConnectionFailedListener,
         View.OnClickListener {
 
-    private static final String TAG = "SignInActivity";
-    private static final int RC_SIGN_IN = 9001;
+    private static final String TAG = "From MainActivity";
+    private static final int request_code = 1234;
 
-    private GoogleApiClient mGoogleApiClient;
-    //private TextView mStatusTextView;
-    private ProgressDialog mProgressDialog;
+    private GoogleApiClient myGoogleApiClient;
+    private ProgressDialog myProgressDialog;
+    //AugGraffiti Web API (AGWA) login.php URL
     private static final String checkin_url = "http://roblkw.com/msa/login.php";
     private String checkInResponse;
     private static String emailID;
@@ -48,87 +56,42 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        //showProgressDialog();
         setContentView(R.layout.activity_main);
-        // Views
-        //mStatusTextView = (TextView) findViewById(R.id.status);
 
-        // Button listeners
+        //Sign-in button
         findViewById(R.id.sign_in_button).setOnClickListener(this);
-        //findViewById(R.id.sign_out_button).setOnClickListener(this);
 
-        // [START configure_signin]
-        // Configure sign-in to request the user's ID, email address, and basic
-        // profile. ID and basic profile are included in DEFAULT_SIGN_IN.
-        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                //.requestIdToken(MainActivity.this.getResources().getString(R.string.server_client_id))
+        //Configuring sign-in to request Google's user ID. requestServerAuthCode is necessary if a team is developing
+        //an app. So that SHA-1 key can be shared among team-members.
+        GoogleSignInOptions signIn_option = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestServerAuthCode("1005090397243-jol2ogo49gknievp2622h2ugbiop2tcf.apps.googleusercontent.com")
-                //.requestScopes(new Scope(Scopes.PLUS_LOGIN))
-                //.requestScopes(new Scope(Scopes.PLUS_ME))
                 .requestEmail()
                 .build();
-        // [END configure_signin]
 
-        // [START build_client]
-        // Build a GoogleApiClient with access to the Google Sign-In API and the
-        // options specified by gso.
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .enableAutoManage(this /* FragmentActivity */, this /* OnConnectionFailedListener */)
-                .addApi(Auth.GOOGLE_SIGN_IN_API, gso)
+        //Object of GoogleApiClient and giving access to a GOOGLE_SIGN_IN_API.
+        myGoogleApiClient = new GoogleApiClient.Builder(this)
+                .enableAutoManage(this, this)
+                .addApi(Auth.GOOGLE_SIGN_IN_API, signIn_option)
                 .build();
-        // [END build_client]
 
-        // [START customize_button]
-        // Customize sign-in button. The sign-in button can be displayed in
-        // multiple sizes and color schemes. It can also be contextually
-        // rendered based on the requested scopes. For example. a red button may
-        // be displayed when Google+ scopes are requested, but a white button
-        // may be displayed when only basic profile is requested. Try adding the
-        // Scopes.PLUS_LOGIN scope to the GoogleSignInOptions to see the
-        // difference.
+        //Customized Google sign-in button
         SignInButton signInButton = (SignInButton) findViewById(R.id.sign_in_button);
         signInButton.setSize(SignInButton.SIZE_STANDARD);
-        signInButton.setScopes(gso.getScopeArray());
-        // [END customize_button]
-
-
-        OptionalPendingResult<GoogleSignInResult> opr = Auth.GoogleSignInApi.silentSignIn(mGoogleApiClient);
-        if (opr.isDone()) {
-            // If the user's cached credentials are valid, the OptionalPendingResult will be "done"
-            // and the GoogleSignInResult will be available instantly.
-            Log.d(TAG, "Got cached sign-in");
-            GoogleSignInResult result = opr.get();
-            handleSignInResult(result);
-        } else {
-            // If the user has not previously signed in on this device or the sign-in has expired,
-            // this asynchronous branch will attempt to sign in the user silently.  Cross-device
-            // single sign-on will occur in this branch.
-
-            opr.setResultCallback(new ResultCallback<GoogleSignInResult>() {
-                @Override
-                public void onResult(GoogleSignInResult googleSignInResult) {
-                    hideProgressDialog();
-                    handleSignInResult(googleSignInResult);
-                }
-            });
-        }
+        signInButton.setScopes(signIn_option.getScopeArray());
     }
 
     @Override
     public void onStart() {
         super.onStart();
 
-        OptionalPendingResult<GoogleSignInResult> opr = Auth.GoogleSignInApi.silentSignIn(mGoogleApiClient);
+        OptionalPendingResult<GoogleSignInResult> opr = Auth.GoogleSignInApi.silentSignIn(myGoogleApiClient);
         if (opr.isDone()) {
-            // If the user's cached credentials are valid, the OptionalPendingResult will be "done"
-            // and the GoogleSignInResult will be available instantly.
+            //If user has signed-in previously then cached result will be used.
             Log.d(TAG, "Got cached sign-in");
             GoogleSignInResult result = opr.get();
             handleSignInResult(result);
         } else {
-            // If the user has not previously signed in on this device or the sign-in has expired,
-            // this asynchronous branch will attempt to sign in the user silently.  Cross-device
-            // single sign-on will occur in this branch.
+            //If the user hasn't signed in previously then this will try to do single sign-on
             showProgressDialog();
             opr.setResultCallback(new ResultCallback<GoogleSignInResult>() {
                 @Override
@@ -141,12 +104,13 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     // [START onActivityResult]
+    //This will retrieve the sign-in result from intent.
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        // Result returned from launching the Intent from GoogleSignInApi.getSignInIntent(...);
-        if (requestCode == RC_SIGN_IN) {
+        // Result obtained from launching the Intent from a signIn()
+        if (requestCode == request_code) {
             GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(data);
             handleSignInResult(result);
         }
@@ -156,36 +120,30 @@ public class MainActivity extends AppCompatActivity implements
     // [START handleSignInResult]
     private void handleSignInResult(GoogleSignInResult result) {
         Log.d(TAG, "handleSignInResult:" + result.isSuccess());
-        Log.d(TAG, "handleSignInResult:" + result.getStatus());
         if (result.isSuccess()) {
-            // Signed in successfully, show authenticated UI.
-
+            // Signed in successfully.
+            //If sign-in successful,call the getSignInAccount method to get a GoogleSignInAccount
+            ///GoogleSignInAccount object acct is created to get the information about the user.
             GoogleSignInAccount acct = result.getSignInAccount();
+
+            //Static string emailID is used to communicate and register user on PHP server.
             emailID = acct.getEmail();
-            //System.out.println(emailID);
-            //mStatusTextView.setText(getString(R.string.signed_in_fmt, acct.getDisplayName()));
-            //updateUI(true);
-            //checkUserInDB(emailID);
-            //if(checkInResponse == "0") {
 
+            //Checking user in PHP server's database. -> Two layers of authentication.
             checkUserInDB(emailID);
-            Log.d(TAG, "handleSignInResult:" + "login.php returned:" + checkInResponse);
-
-            //}
-        } else {
-            // Signed out, show unauthenticated UI.
-            //updateUI(false);
         }
     }
     // [END handleSignInResult]
 
 
-    // [START checking user in Database]
+    // [START checking user in Database]-> This will register user in PHP server.
+    //POST request is used to sign-in user. It only requires an email-address. (0- success; 1-invalid email)
     public void checkUserInDB(final String emailID){
         StringRequest stringRequest = new StringRequest(Request.Method.POST, checkin_url, new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
                 checkInResponse = response;
+                //If sign-in is successful then transition to the next activity (MapsActivity)
                 if(checkInResponse.equals("0")){
                     Intent i = new Intent(MainActivity.this, MapsActivity.class);
                     i.putExtra("EmailID", emailID);
@@ -207,94 +165,52 @@ public class MainActivity extends AppCompatActivity implements
             }
         };
         stringRequest.setTag(TAG);
+        //RequestQueueSingleton class is used for an instantiation throughout the project.
         RequestQueueSingleton.getInstance(this).addToRequestQueue(stringRequest);
     }
     // [END checking user in Database]
 
 
     // [START signIn]
+    //This will give an option to the user to choose from multiple accounts or adding a new account altogether.
     private void signIn() {
-        Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(mGoogleApiClient);
-        startActivityForResult(signInIntent, RC_SIGN_IN);
+        Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(myGoogleApiClient);
+        startActivityForResult(signInIntent, request_code);
     }
     // [END signIn]
 
-    /*
-    // [START signOut]
-    private void signOut() {
-        Auth.GoogleSignInApi.signOut(mGoogleApiClient).setResultCallback(
-                new ResultCallback<Status>() {
-                    @Override
-                    public void onResult(Status status) {
-                        // [START_EXCLUDE]
-                        //updateUI(false);
-                        // [END_EXCLUDE]
-                    }
-                });
-    }
-    // [END signOut]
-
-
-    // [START revokeAccess]
-    private void revokeAccess() {
-        Auth.GoogleSignInApi.revokeAccess(mGoogleApiClient).setResultCallback(
-                new ResultCallback<Status>() {
-                    @Override
-                    public void onResult(Status status) {
-                        // [START_EXCLUDE]
-                        //updateUI(false);
-                        // [END_EXCLUDE]
-                    }
-                });
-    }
-    // [END revokeAccess]
-*/
-
+    //If an error occurs and Google sign-in cannot be processed.
     @Override
     public void onConnectionFailed(ConnectionResult connectionResult) {
-        // An unresolvable error has occurred and Google APIs (including Sign-In) will not
-        // be available.
         Log.d(TAG, "onConnectionFailed:" + connectionResult);
     }
 
+    //For an intuitive UI progressDialog is displayed showing loading message in case of slow speed internet connection.
     private void showProgressDialog() {
-        if (mProgressDialog == null) {
-            mProgressDialog = new ProgressDialog(this);
-            mProgressDialog.setMessage(getString(R.string.loading));
-            mProgressDialog.setIndeterminate(true);
+        if (myProgressDialog == null) {
+            myProgressDialog = new ProgressDialog(this);
+            myProgressDialog.setMessage(getString(R.string.loading));
+            myProgressDialog.setIndeterminate(true);
         }
 
-       // mProgressDialog.show();
+       myProgressDialog.show();
     }
 
+    //Progress dialog is hidden.
     private void hideProgressDialog() {
-        if (mProgressDialog != null && mProgressDialog.isShowing()) {
-            mProgressDialog.hide();
+        if (myProgressDialog != null && myProgressDialog.isShowing()) {
+            myProgressDialog.hide();
         }
     }
 
- /*   private void updateUI(boolean signedIn) {
-        if (signedIn) {
-            findViewById(R.id.sign_in_button).setVisibility(View.GONE);
-            findViewById(R.id.sign_out_and_disconnect).setVisibility(View.VISIBLE);
-        } else {
-            mStatusTextView.setText(R.string.signed_out);
-
-            findViewById(R.id.sign_in_button).setVisibility(View.VISIBLE);
-            findViewById(R.id.sign_out_and_disconnect).setVisibility(View.GONE);
-        }
-    }
-    */
-
+    //This is onClickListener for Google sign-in button. Once the sign-in button is pressed.
+    //signIn method will be called.
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.sign_in_button:
                 signIn();
                 break;
- //           case R.id.sign_out_button:
-   //             signOut();
-     //           break;
         }
     }
 

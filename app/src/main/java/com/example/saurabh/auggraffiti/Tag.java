@@ -1,3 +1,8 @@
+/**
+ * Tag class represents both tags placed and collected by the user
+ * Created for future use (after checkpoint) and implementation.
+ */
+
 package com.example.saurabh.auggraffiti;
 
 

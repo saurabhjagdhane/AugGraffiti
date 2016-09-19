@@ -1,3 +1,12 @@
+/**
+ * MapsActivity deals with all things related to Map screen.
+ * Buttons: Sign Out, Gallery
+ * TextView: Score
+ * Blue Circle: User location (onClick -> CameraActivity)
+ * Green circle: Near-by Tags in 50m*50m (onClick -> CollectActivity)
+ * Black Polylines: Lines connecting user and ner-by tags
+ */
+
 package com.example.saurabh.auggraffiti;
 
 import android.app.Dialog;
@@ -20,11 +29,7 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.graphics.drawable.RoundedBitmapDrawable;
-import android.support.v4.graphics.drawable.RoundedBitmapDrawableFactory;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -52,16 +57,10 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
-import com.google.android.gms.maps.model.GroundOverlay;
-import com.google.android.gms.maps.model.GroundOverlayOptions;
 import com.google.android.gms.maps.model.Polygon;
 import com.google.android.gms.maps.model.PolygonOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
-import com.google.android.gms.maps.model.TileOverlayOptions;
-import com.google.android.gms.vision.text.Text;
 
 import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
@@ -70,14 +69,11 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 
-import java.io.FileDescriptor;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.RunnableFuture;
+
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, com.google.android.gms.location.LocationListener {
 
@@ -122,9 +118,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     .findFragmentById(R.id.map);
             mapFragment.getMapAsync(this);
         }
-        // ATTENTION: This was auto-generated to implement the App Indexing API.
-        // See https://g.co/AppIndexing/AndroidStudio for more information.
-        // client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
 
         //findViewById(R.id.sign_out_button).setOnClickListener(this);
 
@@ -163,15 +156,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
         // [END customize_button]
-        /*
-        if(mMap != null){
-            getScore();
-            startDisplayTags();
-        }
-        */
+
     }
 
-    // [START signOut]
+
+    /**
+     * Handles signing out after presing sign out button on Maps Activity and takes the user back to sign-in page.
+     */
     private void signOut() {
         Auth.GoogleSignInApi.signOut(mGoogleApiClient).setResultCallback(
                 new ResultCallback<Status>() {
@@ -182,10 +173,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     }
                 });
     }
-    // [END signOut]
 
-    // [START googleServicesAvailable]
-    //checks if google service is available
+
+    /**
+     * Checks if google service is available. Returns true or false.
+     */
     public boolean googleServicesAvailable(){
         GoogleApiAvailability g = GoogleApiAvailability.getInstance();
         int available = g.isGooglePlayServicesAvailable(this);
@@ -199,21 +191,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         return  false;
     }
-    // [END googleServicesAvailable]
 
-    // [START onConfigurationChanged]
-    // for screen orientation change
+
+    /**
+     * Handles screen orientation change.
+     */
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
     }
-    // [START onConfigurationChanged]
+
 
     /**
      * Manipulates the map once available.
      * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
+     * This is where the threads are started for getting score and placing the nerbyTags in 50m*50m on Map
      * If Google Play services is not installed on the device, the user will be prompted to install
      * it inside the SupportMapFragment. This method will only be triggered once the user has
      * installed Google Play services and returned to the app.
@@ -224,10 +216,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
        // Toast.makeText(this, "Inside Map ready!", Toast.LENGTH_SHORT).show();
 
         mMap = googleMap;
-        Log.d(TAG, "handleSignInResult:" + emailID);
+
+        // Get an instance of RequestQueue
         rq = RequestQueueSingleton.getInstance(this.getApplicationContext()).getRequestQueue();
 
-
+        // On user location click, moves to CameraActivity where one can place their own tag.
+        // On collect tags click, moves to CollectActivity where one can collect tags placed by other users of this app.
         mMap.setOnCircleClickListener(new GoogleMap.OnCircleClickListener() {
             @Override
             public void onCircleClick(Circle circle) {
@@ -253,6 +247,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
+        // enabling user location tracking
         client = new GoogleApiClient.Builder(this)
                 .addApi(LocationServices.API)
                 .addConnectionCallbacks(this)
@@ -260,15 +255,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .build();
         client.connect();
 
+        // initiating the threads which continuously update the score and place nearbyTags in 50m*50m
         isRunning = true;
         getScore();
         startDisplayTags();
-
     }
 
 
-
-    // handler for placing tags in 50m*50m
+    /**
+     * Handler for placing tags in 50m*50m.
+     */
     Handler handlerPlace = new Handler(){
         @Override
         public void handleMessage(Message msg) {
@@ -277,7 +273,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     };
 
-    // handler for removing duplicate tags in 50m*50m
+
+    /**
+     * Handler for removing duplicate tags in 50m*50m.
+     */
     Handler handlerRemove = new Handler(){
         @Override
         public void handleMessage(Message msg) {
@@ -288,8 +287,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     Double latitude;
     Double longitude;
-    /* [START startDisplayTags]
-    checks if google service is available  */
+    /**
+     * Function which starts a thread which places nearByTags in 50m*50m continuously.
+     */
     public void startDisplayTags() {
         //Toast.makeText(MapsActivity.this, "Tags Thread!, isRunning = "+isRunning, Toast.LENGTH_SHORT).show();
         Thread t = new Thread(new Runnable() {
@@ -316,7 +316,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         t.start();
     }
 
+
     TextView scoreText;
+    /**
+     * Handler which updates the textview for score on Map Activity.
+     */
     Handler handlerScore = new Handler(){
         @Override
         public void handleMessage(Message msg) {
@@ -329,6 +333,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     };
 
+
+    /**
+     * Function which starts a thread which updates the score continuously.
+     * Sends a post request to getscore.php with field: email id & its value passed in the body of the HTTP Request.
+     */
     public void getScore(){
        // Toast.makeText(MapsActivity.this, "Score Thread!, isRunning = "+isRunning, Toast.LENGTH_SHORT).show();
         Thread t = new Thread(new Runnable() {
@@ -337,6 +346,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 while (isRunning) {
                     synchronized (this) {
                         try {
+                            // Runs the loop continuously in an interval of 1 sec.
                             wait(1000);
                             StringRequest stringRequest = new StringRequest(Request.Method.POST, urlGetScore, new Response.Listener<String>() {
                                 @Override
@@ -352,11 +362,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 @Override
                                 protected Map<String, String> getParams() throws AuthFailureError {
                                     Map<String, String> param_map = new HashMap<String, String>();
-                                    param_map.put("email", "ssshett3@asu.edu");
+                                    param_map.put("email", emailID);
                                     return param_map;
                                 }
                             };
+                            // Setting all the string requests sent with a tag so that they can be tracked and removed in onStop() method (claen-up).
                             stringRequest.setTag(TAG);
+
+                            // Adding the request to the RequestQueue
                             RequestQueueSingleton.getInstance(MapsActivity.this).addToRequestQueue(stringRequest);
                             handlerScore.sendEmptyMessage(0);
                         } catch (InterruptedException e) {
@@ -369,13 +382,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         t.start();
     }
 
+
+    /**
+     * Called by thread instantiated in startDisplayTags() function.
+     * Sends a post request to nearTags.php with fields: email id, longitude and latitude & its values passed in the body of the HTTP Request.
+     */
     public void getNearbyTags(){
         StringRequest stringRequest = new StringRequest(Request.Method.POST, urlNearByTags, new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
                 //postResponse = "tag1, 33.423935, -111.927484, tag2, 33.420713, -111.922923, tag3, 33.420561, -111.920069";
                 postResponse = response;
-                Log.d(TAG, "response:" + postResponse);
             }
         }, new Response.ErrorListener() {
             @Override
@@ -397,9 +414,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
 
-
     LocationRequest lr;
-
+    /**
+     * Called once when connected to Location Services API.
+     */
     @Override
     public void onConnected(Bundle bundle) {
         //Toast.makeText(this, "inside onConnected!", Toast.LENGTH_SHORT).show();
@@ -416,6 +434,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             // for ActivityCompat#requestPermissions for more details.
             return;
         }
+
+        // request location updates continuously in an interval of 1 sec
         LocationServices.FusedLocationApi.requestLocationUpdates(client, lr, this);
     }
 
@@ -429,12 +449,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Toast.makeText(this, "Connection to google api failed!!", Toast.LENGTH_SHORT).show();
     }
 
+
     Marker marker;
     Circle circle_p;
     Circle circle_c;
     Polygon overlay;
     Polyline line;
-
+    /**
+     * Called once in every interval of 1 second.
+     */
     @Override
     public void onLocationChanged(Location location){
         if(location == null)
@@ -442,18 +465,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         else{
             lng = location.getLongitude();
             lat = location.getLatitude();
-            lat = 33.419351;
-            lng = -111.938083;
+            //lat = 33.419351;
+            //lng = -111.938083;
             LatLng loc = new LatLng(lat, lng);
-            //ong=-111.938083&loc_lat=33.419351
 
-            List<Address> l;
-            Address a;
-
-            // Adding place tag
+            // Adding place tag and removing previously placed marker to avoid overlappig and duplication.
             if(circle_p != null)
                 remove();
-
+            // User's location marked as a clickable circle on Map with radius 5m and color BLUE.
             CircleOptions copt = new CircleOptions()
                     .center(loc)
                     .radius(5)
@@ -462,23 +481,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     .strokeWidth(0);
             circle_p = mMap.addCircle(copt);
 
-            // Overlay 50m * 50m
-            /*
-            overlay = mMap.addPolygon(new PolygonOptions()
-                    .fillColor(0x15FF0000)
-                    .strokeWidth(3)
-                    .add(new LatLng(lat-0.0025, lng+0.0025))
-                    .add(new LatLng(lat-0.0025, lng-0.0025))
-                    .add(new LatLng(lat+0.0025, lng-0.0025))
-                    .add(new LatLng(lat+0.0025, lng+0.0025)));
-            */
-
+            // Sets the amount of zoom on the Map screen
             CameraUpdate c = CameraUpdateFactory.newLatLngZoom(loc, 19);
             mMap.animateCamera(c);
         }
 
     }
 
+
+    /**
+     * Adds overlays (circles) representing nearByTags in 50m*50m of radius 5m and color GREEN which are clickable.
+     * Called by Handler handlerPlace invoked by the thread as the thread should not update the UI by itself.
+     */
     public void addOverlays(){
         if(postResponse != null){
             String parameters[] = postResponse.split(",");
@@ -489,9 +503,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     longitude = Double.parseDouble(parameters[i++]);
                     latitude = Double.parseDouble(parameters[i++]);
                     Tag t = new Tag(id ,latitude, longitude);
-
                     //tagList.add(t);
-
                     LatLng loc = new LatLng(latitude, longitude);
                      CircleOptions copt = new CircleOptions()
                         .center(loc)
@@ -507,6 +519,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+
+    /**
+     * Adds overlays (lines) representing lines between nearByTags in 50m*50m and user's circle of color BLACK.
+     * Called by addOverlays() function after it has placed the circles representing nearByTags.
+     */
     public void addLines(Double cLatitude, Double cLongitude, Double pLatitude, Double pLongitude){
         LatLng loc_c = new LatLng(cLatitude, cLongitude);
         LatLng loc_p = new LatLng(pLatitude, pLongitude);
@@ -518,13 +535,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         polylines.add(line);
     }
 
+
+    /**
+     * Removes circle representing user to avoid duplicate overlays.
+     * Called by onLocationChanged() function.
+     */
     public void remove(){
         circle_p.remove();
         circle_p = null;
-        //overlay.remove();
-        //overlay = null;
     }
 
+
+    /**
+     * Removes circle representing nearByTags to avoid duplicate overlays.
+     * Called by Handler handlerRemove invoked by the thread as the thread should not update the UI by itself.
+     */
     public void removeTags(){
         int i = 0;
         while(i < circles.size()){
@@ -536,14 +561,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         line = null;
     }
 
+
+    /**
+     * Disabling back button feature such that user can go back to sign-in page only by clicking on 'Sign Out' button.
+     * User can press home button if he/she wants to temporarily stop the app.
+     */
     @Override
     public void onBackPressed() {
         // Do nothing...can go back to sign-in page only using sign out button
-        //super.onBackPressed();
-        //finish();
-        //return;
     }
 
+
+    /**
+     * Called when activity is finished or when home button pressed.
+     * Cancels all pending requests in the request queue placed by the application to getScore and place nearByTags in 50m*50m
+     */
     @Override
     protected void onStop() {
         super.onStop();

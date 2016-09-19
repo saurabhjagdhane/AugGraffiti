@@ -1,3 +1,9 @@
+/*
+    This is CameraActivity as a sample when user will try to place a tag at his current location.
+    This may be combined with the CollectActvity. To be decided....
+    Description to be updated by 5th October. Stay tuned...!!
+ */
+
 package com.example.saurabh.auggraffiti;
 
 import android.*;

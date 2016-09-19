@@ -1,3 +1,11 @@
+/*
+This is basic CameraPreview class and and not an activity.
+ A camera preview class is a SurfaceView that can display the live image data coming from a camera,
+ so users can frame and capture a picture or video.
+
+This will be a part of the CameraActivity which expects an update in upcoming phase.
+Description to be updated by 5th October. Stay tuned...!!
+ */
 package com.example.saurabh.auggraffiti;
 
 /**
