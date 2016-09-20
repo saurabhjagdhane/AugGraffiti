@@ -87,7 +87,7 @@ public class MainActivity extends AppCompatActivity implements
         OptionalPendingResult<GoogleSignInResult> opr = Auth.GoogleSignInApi.silentSignIn(myGoogleApiClient);
         if (opr.isDone()) {
             //If user has signed-in previously then cached result will be used.
-            Log.d(TAG, "Got cached sign-in");
+            //Log.d(TAG, "Got cached sign-in");
             GoogleSignInResult result = opr.get();
             handleSignInResult(result);
         } else {
@@ -119,7 +119,7 @@ public class MainActivity extends AppCompatActivity implements
 
     // [START handleSignInResult]
     private void handleSignInResult(GoogleSignInResult result) {
-        Log.d(TAG, "handleSignInResult:" + result.isSuccess());
+        //Log.d(TAG, "handleSignInResult:" + result.isSuccess());
         if (result.isSuccess()) {
             // Signed in successfully.
             //If sign-in successful,call the getSignInAccount method to get a GoogleSignInAccount
