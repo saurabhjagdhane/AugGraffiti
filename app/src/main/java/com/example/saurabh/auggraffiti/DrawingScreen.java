@@ -12,32 +12,11 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
 import android.view.MotionEvent;
 import android.view.View;
 
-public class DrawingScreen extends AppCompatActivity {
 
-    DrawingView dv ;
-    private Paint mPaint;
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        dv = new DrawingView(this);
-        setContentView(dv);
-        mPaint = new Paint();
-        mPaint.setAntiAlias(true);
-        mPaint.setDither(true);
-        mPaint.setColor(Color.GREEN);
-        mPaint.setStyle(Paint.Style.STROKE);
-        mPaint.setStrokeJoin(Paint.Join.ROUND);
-        mPaint.setStrokeCap(Paint.Cap.ROUND);
-        mPaint.setStrokeWidth(12);
-    }
-
-    public class DrawingView extends View {
+public class DrawingScreen extends View {
 
         public int width;
         public  int height;
@@ -48,10 +27,12 @@ public class DrawingScreen extends AppCompatActivity {
         Context context;
         private Paint circlePaint;
         private Path circlePath;
+        private static Paint mPaint;
 
-        public DrawingView(Context c) {
+        public DrawingScreen(Context c, Paint mPaint) {
             super(c);
             context=c;
+            DrawingScreen.mPaint = mPaint;
             mPath = new Path();
             mBitmapPaint = new Paint(Paint.DITHER_FLAG);
             circlePaint = new Paint();
@@ -61,6 +42,10 @@ public class DrawingScreen extends AppCompatActivity {
             circlePaint.setStyle(Paint.Style.STROKE);
             circlePaint.setStrokeJoin(Paint.Join.MITER);
             circlePaint.setStrokeWidth(4f);
+        }
+
+        public Bitmap getmBitmap(){
+            return this.mBitmap;
         }
 
         @Override
@@ -133,5 +118,5 @@ public class DrawingScreen extends AppCompatActivity {
             }
             return true;
         }
-    }
 }
+

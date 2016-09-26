@@ -8,17 +8,31 @@ package com.example.saurabh.auggraffiti;
 
 import android.*;
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Path;
 import android.hardware.Camera;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.Toast;
+
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 
 public class CameraActivity extends AppCompatActivity {
 
@@ -27,32 +41,65 @@ public class CameraActivity extends AppCompatActivity {
     private Button capture;
     private static String emailID;
     public static final int MY_CAMERA_REQUEST_CODE = 1015;
+    private static Bitmap bitmap;
+
+    private DrawingScreen dv;
+    private Paint mPaint;
+    private OutputStream outputStream = null;
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera);
 
+        // Drawing //
+
+        //setContentView(dv);
+        mPaint = new Paint();
+        mPaint.setAntiAlias(true);
+        mPaint.setDither(true);
+        mPaint.setColor(Color.GREEN);
+        mPaint.setStyle(Paint.Style.STROKE);
+        mPaint.setStrokeJoin(Paint.Join.ROUND);
+        mPaint.setStrokeCap(Paint.Cap.ROUND);
+        mPaint.setStrokeWidth(12);
+        dv = new DrawingScreen(this, mPaint);
+        ////////////////////////////////////
+
         Bundle extraData = getIntent().getExtras();
         emailID = extraData.getString("EmailID");
 
-        capture = (Button)findViewById(R.id.gallery_button);
+        capture = (Button) findViewById(R.id.gallery_button);
 
         capture.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent i = new Intent(CameraActivity.this,DrawingScreen.class );
-                startActivity(i);
+                bitmap = dv.getmBitmap();
+                ByteArrayOutputStream stream =  new ByteArrayOutputStream();
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
+                File f = new File("image.jpg");
+                try {
+                    outputStream = new BufferedOutputStream(new FileOutputStream(f));
+                    outputStream.write(stream.toByteArray());
+                    if(outputStream != null){
+                        outputStream.close();
+                    }
+                }catch(Exception e){
+                    e.printStackTrace();
+                }
+
             }
         });
 
         // Create an instance of Camera
         mCamera = getCameraInstance();
-        if(mCamera != null){
+        if (mCamera != null) {
             // Create our Preview view and set it as the content of our activity.
             mPreview = new CameraPreview(this, mCamera);
             FrameLayout preview = (FrameLayout) findViewById(R.id.camera_preview);
             preview.addView(mPreview);
+            preview.addView(dv);
         }
 
     }
@@ -60,10 +107,10 @@ public class CameraActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         Camera c = null;
-        Toast.makeText(this, "onRequestPermissionsResult, requestCode: "+requestCode, Toast.LENGTH_SHORT).show();
-        if(requestCode == MY_CAMERA_REQUEST_CODE){
+        Toast.makeText(this, "onRequestPermissionsResult, requestCode: " + requestCode, Toast.LENGTH_SHORT).show();
+        if (requestCode == MY_CAMERA_REQUEST_CODE) {
             if (grantResults.length > 0
-                    && grantResults[0] == PackageManager.PERMISSION_GRANTED){
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 c = Camera.open();
                 mCamera = c;
                 mPreview = new CameraPreview(this, mCamera);
@@ -73,10 +120,10 @@ public class CameraActivity extends AppCompatActivity {
         }
     }
 
-    public Camera getCameraInstance(){
+    public Camera getCameraInstance() {
         Camera c = null;
         try {
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED ) {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
                 // TODO: Consider calling
                 //    ActivityCompat#requestPermissions
                 // here to request the missing permissions, and then overriding
@@ -88,11 +135,10 @@ public class CameraActivity extends AppCompatActivity {
                         new String[]{Manifest.permission.READ_CONTACTS},
                         MY_CAMERA_REQUEST_CODE);
 
-            }else {
+            } else {
                 c = Camera.open(); // attempt to get a Camera instance
             }
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             // Camera is not available (in use or does not exist)
         }
         return c; // returns null if camera is unavailable
@@ -112,4 +158,9 @@ public class CameraActivity extends AppCompatActivity {
         mCamera.release();
         mCamera = null;
     }
+
 }
+
+
+
+
