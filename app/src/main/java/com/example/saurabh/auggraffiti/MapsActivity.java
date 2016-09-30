@@ -100,6 +100,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static Double lat;
     private static Double lng;
     private static boolean isRunning = false;
+    private Button galleryButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -146,6 +147,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // may be displayed when only basic profile is requested. Try adding the
         // Scopes.PLUS_LOGIN scope to the GoogleSignInOptions to see the
         // difference.
+
+        galleryButton = (Button)findViewById(R.id.gallery_button);
+        galleryButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent i = new Intent(MapsActivity.this, GalleryScreen.class);
+                i.putExtra("EmailID", emailID);
+                startActivity(i);
+            }
+        });
+
 
         final Button sign_out = (Button)findViewById(R.id.signout_button);
         sign_out.setOnClickListener(new View.OnClickListener() {
@@ -246,6 +258,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
             }
         });
+
 
         // enabling user location tracking
         client = new GoogleApiClient.Builder(this)

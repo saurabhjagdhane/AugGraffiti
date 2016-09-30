@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.saurabh.auggraffiti"
-    android:name="android.support.multidex.MultiDexApplication">
+    android:name="android.support.multidex.MultiDexApplication"
+    package="com.example.saurabh.auggraffiti">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="com.google.android.providers.gsf.permission.READ_GSERVICES" />
     <uses-permission android:name="android.permission.CAMERA" />
+
     <uses-feature android:name="android.hardware.camera" />
-    <uses-feature android:name="android.hardware.camera.autofocus"/>
+    <uses-feature android:name="android.hardware.camera.autofocus" />
 
     <uses-permission android:name="android.permission.GET_ACCOUNTS" />
     <uses-permission android:name="android.permission.USE_CREDENTIALS" />
@@ -21,7 +22,7 @@
 
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <uses-feature
         android:glEsVersion="0x00020000"
@@ -64,12 +65,11 @@
             android:label="@string/title_activity_maps" />
         <activity
             android:name=".CameraActivity"
-            android:screenOrientation="portrait">
-        </activity>
-
-
-
-        <activity android:name=".CollectActivity"></activity>
+            android:screenOrientation="portrait" />
+        <activity android:name=".CollectActivity" />
+        <activity android:name=".GalleryScreen" />
+        <activity android:name=".SingleTagView"></activity>
+        <service android:name=".UserLocationService" android:enabled="true"></service>
     </application>
 
 </manifest>
