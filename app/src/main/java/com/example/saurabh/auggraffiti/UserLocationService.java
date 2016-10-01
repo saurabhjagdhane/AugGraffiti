@@ -144,6 +144,8 @@ public class UserLocationService extends Service implements GoogleApiClient.Conn
 
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
+
+        
         //Toast.makeText(this, "onSensorChanged", Toast.LENGTH_SHORT).show();
         switch (sensorEvent.sensor.getType()) {
             case Sensor.TYPE_MAGNETIC_FIELD:
