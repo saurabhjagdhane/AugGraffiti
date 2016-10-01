@@ -1,6 +1,7 @@
 package com.example.saurabh.auggraffiti;
 
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
@@ -14,6 +15,7 @@ import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.android.volley.AuthFailureError;
@@ -35,6 +37,7 @@ public class UserLocationService extends Service implements GoogleApiClient.Conn
     private String postResponse;
     private static RequestQueue rq;
     private String emailID = "";
+    private Location location;
     private double lat = 0.0;
     private double lng = 0.0;
     private GoogleApiClient client;
@@ -51,6 +54,7 @@ public class UserLocationService extends Service implements GoogleApiClient.Conn
     float azimuth;
     float pitch;
     float roll;
+    double altitude;
 
     static int ACCE_FILTER_DATA_MIN_TIME = 1000; // 1000ms
     long lastSaved = System.currentTimeMillis();
@@ -60,7 +64,7 @@ public class UserLocationService extends Service implements GoogleApiClient.Conn
 
     @Override
     public IBinder onBind(Intent intent) {
-        Toast.makeText(this, "service binded!", Toast.LENGTH_LONG).show();
+        //Toast.makeText(this, "service binded!", Toast.LENGTH_LONG).show();
         rq = RequestQueueSingleton.getInstance(this.getApplicationContext()).getRequestQueue();
         //Bundle extraData = intent.getExtras();
         //Object a =  extraData.getString("MapObject");
@@ -72,6 +76,9 @@ public class UserLocationService extends Service implements GoogleApiClient.Conn
                     .addOnConnectionFailedListener(this)
                     .build();
             client.connect();
+            sManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+            sManager.registerListener(this, sManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),SensorManager.SENSOR_DELAY_NORMAL);
+            sManager.registerListener(this, sManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD),SensorManager.SENSOR_DELAY_NORMAL);
         }
         isRunning = true;
         return service;
@@ -83,8 +90,12 @@ public class UserLocationService extends Service implements GoogleApiClient.Conn
         this.lng = Longitude;
     }
 
-    public double[] getParameters(){
-        double location[] = {lat, lng};
+    public synchronized double[] getParameters(){
+        double location[] = {lat, lng, azimuth, altitude};
+        return location;
+    }
+
+    public synchronized Location getLocation(){
         return location;
     }
 
@@ -93,7 +104,7 @@ public class UserLocationService extends Service implements GoogleApiClient.Conn
     public void onConnected(@Nullable Bundle bundle) {
         lr = LocationRequest.create();
         lr.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        lr.setInterval(1000);
+        lr.setInterval(800);
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // TODO: Consider calling
             //    ActivityCompat#requestPermissions
@@ -119,8 +130,10 @@ public class UserLocationService extends Service implements GoogleApiClient.Conn
         if(location == null)
             Toast.makeText(this, "Cant get current location!", Toast.LENGTH_LONG).show();
         else {
+            this.location = location;
             lng = location.getLongitude();
             lat = location.getLatitude();
+            altitude = location.getAltitude();
         }
     }
 
@@ -129,11 +142,8 @@ public class UserLocationService extends Service implements GoogleApiClient.Conn
         Toast.makeText(this, "Connection to LocationServices failed!!", Toast.LENGTH_LONG).show();
     }
 
-
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
-
-        
         //Toast.makeText(this, "onSensorChanged", Toast.LENGTH_SHORT).show();
         switch (sensorEvent.sensor.getType()) {
             case Sensor.TYPE_MAGNETIC_FIELD:
@@ -177,6 +187,7 @@ public class UserLocationService extends Service implements GoogleApiClient.Conn
     public void onAccuracyChanged(Sensor sensor, int i) {
 
     }
+
 
 
 

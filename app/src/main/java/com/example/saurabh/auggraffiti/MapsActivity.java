@@ -23,6 +23,7 @@ import android.location.Location;
 import android.location.Address;
 import android.net.Uri;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -75,7 +76,7 @@ import java.util.List;
 import java.util.Map;
 
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, com.google.android.gms.location.LocationListener {
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.OnConnectionFailedListener {
 
     private static GoogleMap mMap = null;
     private static final String TAG = "SignInActivity";
@@ -90,7 +91,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private List<Polyline> polylines;
     private GoogleApiClient client;
     private static String emailID;
-    private  ServiceConnection serviceConnection;
     private final static String urlNearByTags = "http://roblkw.com/msa/neartags.php";
     private final static String urlGetScore = "http://roblkw.com/msa/getscore.php";
     private String postResponse;
@@ -101,6 +101,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static Double lng;
     private static boolean isRunning = false;
     private Button galleryButton;
+
+    private UserLocationService myService;
+    private static boolean isBound = false;
+    private ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+            //Toast.makeText(MapsActivity.this, "Service Connected!", Toast.LENGTH_LONG).show();
+            UserLocationService.TagBinder tagBinder = (UserLocationService.TagBinder)iBinder;
+            myService = tagBinder.getService();
+            isBound = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+            isBound = false;
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -147,6 +164,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // may be displayed when only basic profile is requested. Try adding the
         // Scopes.PLUS_LOGIN scope to the GoogleSignInOptions to see the
         // difference.
+
+        Intent i = new Intent(this, UserLocationService.class);
+        bindService(i, serviceConnection, Context.BIND_AUTO_CREATE);
 
         galleryButton = (Button)findViewById(R.id.gallery_button);
         galleryButton.setOnClickListener(new View.OnClickListener() {
@@ -225,7 +245,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
-       // Toast.makeText(this, "Inside Map ready!", Toast.LENGTH_SHORT).show();
+        // Toast.makeText(this, "Inside Map ready!", Toast.LENGTH_SHORT).show();
 
         mMap = googleMap;
 
@@ -259,7 +279,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
-
+        /*
         // enabling user location tracking
         client = new GoogleApiClient.Builder(this)
                 .addApi(LocationServices.API)
@@ -267,13 +287,28 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .addOnConnectionFailedListener(this)
                 .build();
         client.connect();
+        */
+        try {
+            //wait(1000);
+            // initiating the threads which continuously update the score and place nearbyTags in 50m*50m
+            isRunning = true;
+            getScore();
+            startDisplayTags();
+        }catch(Exception e){
 
-        // initiating the threads which continuously update the score and place nearbyTags in 50m*50m
-        isRunning = true;
-        getScore();
-        startDisplayTags();
+        }
     }
 
+    /**
+     * Handler for tracking current user location.
+     */
+    Handler handlerCurrentLocation = new Handler(){
+        @Override
+        public void handleMessage(Message msg) {
+            setUserLocation(myService.getLocation());
+            //addLines(latitude, longitude, lat, lng);
+        }
+    };
 
     /**
      * Handler for placing tags in 50m*50m.
@@ -311,8 +346,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 while (isRunning) {
                     synchronized (this) {
                         try {
-                            wait(1500);
+                            wait(1000);
                             //getNearbyTags("ssshett3@asu.edu", lat, lng);
+                            handlerCurrentLocation.sendEmptyMessage(0);
                             getNearbyTags();
                             if(circles.size() > 0) {
                                 handlerRemove.sendEmptyMessage(0);
@@ -352,7 +388,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      * Sends a post request to getscore.php with field: email id & its value passed in the body of the HTTP Request.
      */
     public void getScore(){
-       // Toast.makeText(MapsActivity.this, "Score Thread!, isRunning = "+isRunning, Toast.LENGTH_SHORT).show();
+        // Toast.makeText(MapsActivity.this, "Score Thread!, isRunning = "+isRunning, Toast.LENGTH_SHORT).show();
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -427,40 +463,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
 
-    LocationRequest lr;
-    /**
-     * Called once when connected to Location Services API.
-     */
-    @Override
-    public void onConnected(Bundle bundle) {
-        //Toast.makeText(this, "inside onConnected!", Toast.LENGTH_SHORT).show();
-        lr = LocationRequest.create();
-        lr.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        lr.setInterval(1000);
-        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            return;
-        }
 
-        // request location updates continuously in an interval of 1 sec
-        LocationServices.FusedLocationApi.requestLocationUpdates(client, lr, this);
-    }
 
-    @Override
-    public void onConnectionSuspended(int i) {
 
-    }
 
-    @Override
-    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-        Toast.makeText(this, "Connection to google api failed!!", Toast.LENGTH_SHORT).show();
-    }
 
 
     Marker marker;
@@ -471,8 +477,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     /**
      * Called once in every interval of 1 second.
      */
-    @Override
-    public void onLocationChanged(Location location){
+
+    public void setUserLocation(Location location){
         if(location == null)
             Toast.makeText(this, "Cant get current location!", Toast.LENGTH_LONG).show();
         else{
@@ -518,12 +524,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     Tag t = new Tag(id ,latitude, longitude);
                     //tagList.add(t);
                     LatLng loc = new LatLng(latitude, longitude);
-                     CircleOptions copt = new CircleOptions()
-                        .center(loc)
-                        .radius(5)
-                        .fillColor(Color.GREEN)
-                        .clickable(true)
-                        .strokeWidth(0);
+                    CircleOptions copt = new CircleOptions()
+                            .center(loc)
+                            .radius(5)
+                            .fillColor(Color.GREEN)
+                            .clickable(true)
+                            .strokeWidth(0);
                     circle_c = mMap.addCircle(copt);
                     circles.add(circle_c);
                     addLines(latitude, longitude, lat, lng);
@@ -592,9 +598,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     protected void onStop() {
         super.onStop();
-
+        if(isBound){
+            unbindService(serviceConnection);
+            isBound = false;
+            serviceConnection = null;
+        }
         if(rq != null){
             rq.cancelAll(TAG);
         }
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+
     }
 }

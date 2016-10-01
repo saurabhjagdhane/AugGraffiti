@@ -40,7 +40,6 @@ dependencies {
     compile 'com.google.android.gms:play-services:9.4.0'
     compile 'com.android.support:multidex:+'
     compile project(path: ':volley')
-    compile files ('libs/eventbus-2.4.0-javadoc.jar')
 }
 
 

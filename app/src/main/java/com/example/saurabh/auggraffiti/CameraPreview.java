@@ -2,7 +2,6 @@
 This is basic CameraPreview class and and not an activity.
  A camera preview class is a SurfaceView that can display the live image data coming from a camera,
  so users can frame and capture a picture or video.
-
 This will be a part of the CameraActivity which expects an update in upcoming phase.
 Description to be updated by 5th October. Stay tuned...!!
  */
@@ -60,22 +59,19 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
                 mCamera.release();
                 mCamera = null;
             }
-
         mCamera = Camera.open(Camera.CameraInfo.CAMERA_FACING_BACK);
-
-
         if(mCamera == null){
             mCamera = Camera.open(Camera.CameraInfo.CAMERA_FACING_BACK);
             isOpened =true;
         } */
-        Camera.Parameters params = mCamera.getParameters();
+            Camera.Parameters params = mCamera.getParameters();
 
 
-        if (this.getResources().getConfiguration().orientation != Configuration.ORIENTATION_LANDSCAPE)
-        {
-            params.set("orientation", "portrait");
-            mCamera.setDisplayOrientation(90);
-        }
+            if (this.getResources().getConfiguration().orientation != Configuration.ORIENTATION_LANDSCAPE)
+            {
+                params.set("orientation", "portrait");
+                mCamera.setDisplayOrientation(90);
+            }
 
 
             mCamera.setPreviewDisplay(holder);
@@ -111,19 +107,19 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         } catch (Exception e) {
             // ignore: tried to stop a non-existent preview
         }
-
-        // make any resize, rotate or reformatting changes here
-        if (this.getResources().getConfiguration().orientation != Configuration.ORIENTATION_LANDSCAPE) {
-
-            mCamera.setDisplayOrientation(90);
-
-        } else {
-
-            mCamera.setDisplayOrientation(0);
-
-        }
-        // start preview with new settings
         try {
+            // make any resize, rotate or reformatting changes here
+            if (this.getResources().getConfiguration().orientation != Configuration.ORIENTATION_LANDSCAPE) {
+
+                mCamera.setDisplayOrientation(90);
+
+            } else {
+
+                mCamera.setDisplayOrientation(0);
+
+            }
+            // start preview with new settings
+
             mCamera.setPreviewDisplay(mHolder);
             mCamera.startPreview();
 
