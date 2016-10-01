@@ -75,7 +75,7 @@ public class CameraActivity extends AppCompatActivity {
     ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-            Toast.makeText(CameraActivity.this, "Service Connected!", Toast.LENGTH_LONG).show();
+            //Toast.makeText(CameraActivity.this, "Service Connected!", Toast.LENGTH_LONG).show();
             TagBinder tagBinder = (TagBinder)iBinder;
             myService = tagBinder.getService();
             isBound = true;
@@ -111,14 +111,14 @@ public class CameraActivity extends AppCompatActivity {
 
 
         Intent i = new Intent(this, UserLocationService.class);
-        getApplicationContext().bindService(i, serviceConnection, Context.BIND_AUTO_CREATE);
+        bindService(i, serviceConnection, Context.BIND_AUTO_CREATE);
 
         capture = (Button) findViewById(R.id.gallery_button);
 
         capture.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                double location[] = myService.getParameters();
+                final double location[] = myService.getParameters();
                 lat = location[0];
                 lng = location[1];
 
@@ -131,6 +131,7 @@ public class CameraActivity extends AppCompatActivity {
 
                 try {
                     final String base64EncodedImage = Base64.encodeToString(stream.toByteArray(), Base64.DEFAULT);
+                    Log.d("response:", "Azimuth: "+location[2]+", Altitude: "+location[3]+", base64: "+base64EncodedImage);
                     outputStream = new BufferedOutputStream(new FileOutputStream(f));
                     outputStream.write(stream.toByteArray());
                     /*
@@ -160,8 +161,8 @@ public class CameraActivity extends AppCompatActivity {
                             param_map.put("tag_img", base64EncodedImage);
                             param_map.put("loc_long", String.valueOf(lng));
                             param_map.put("loc_lat", String.valueOf(lat));
-                            param_map.put("orient_azimuth", String.valueOf(lng));
-                            param_map.put("orient_altitude", String.valueOf(lng));
+                            param_map.put("orient_azimuth", String.valueOf(location[2]));
+                            param_map.put("orient_altitude", String.valueOf(location[3]));
                             return param_map;
                         }
                     };
@@ -177,16 +178,23 @@ public class CameraActivity extends AppCompatActivity {
             }
         });
 
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
         // Create an instance of Camera
         mCamera = getCameraInstance();
         if (mCamera != null) {
             // Create our Preview view and set it as the content of our activity.
             mPreview = new CameraPreview(this, mCamera);
             FrameLayout preview = (FrameLayout) findViewById(R.id.camera_preview);
+            if(preview.getChildCount()>0){
+                preview.removeAllViews();
+            }
             preview.addView(mPreview);
             preview.addView(dv);
         }
-
     }
 
     @Override
@@ -231,12 +239,19 @@ public class CameraActivity extends AppCompatActivity {
 
     @Override
     protected void onStop() {
-        super.onStop();
-        if(serviceConnection != null){
+        if(isBound){
             unbindService(serviceConnection);
+            isBound = false;
             serviceConnection = null;
         }
+        if(mCamera != null) {
+            mCamera.release();
+            mCamera = null;
+        }
+        super.onStop();
     }
+
+
 
     @Override
     public void onBackPressed() {

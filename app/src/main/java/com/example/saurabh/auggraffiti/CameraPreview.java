@@ -111,7 +111,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         } catch (Exception e) {
             // ignore: tried to stop a non-existent preview
         }
-
+        try {
         // make any resize, rotate or reformatting changes here
         if (this.getResources().getConfiguration().orientation != Configuration.ORIENTATION_LANDSCAPE) {
 
@@ -123,7 +123,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
         }
         // start preview with new settings
-        try {
+
             mCamera.setPreviewDisplay(mHolder);
             mCamera.startPreview();
 
