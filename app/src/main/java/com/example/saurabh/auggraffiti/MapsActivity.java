@@ -11,6 +11,7 @@ package com.example.saurabh.auggraffiti;
 
 import android.app.Dialog;
 import android.app.ProgressDialog;
+import android.app.Service;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -93,34 +94,58 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static String emailID;
     private final static String urlNearByTags = "http://roblkw.com/msa/neartags.php";
     private final static String urlGetScore = "http://roblkw.com/msa/getscore.php";
+    private final static String urlFindTag = "http://roblkw.com/msa/findtag.php";
     private String postResponse;
     private String score;
     private static RequestQueue rq;
 
     private static Double lat;
     private static Double lng;
-    private static boolean isRunning = false;
+    private static volatile boolean isRunning = false;
     private Button galleryButton;
 
     private UserLocationService myService;
-    private static boolean isBound = false;
-    private ServiceConnection serviceConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-            //Toast.makeText(MapsActivity.this, "Service Connected!", Toast.LENGTH_LONG).show();
-            UserLocationService.TagBinder tagBinder = (UserLocationService.TagBinder)iBinder;
-            myService = tagBinder.getService();
-            isBound = true;
-        }
+    private static volatile boolean isBound = false;
+    private ServiceConnection serviceConnection;
 
-        @Override
-        public void onServiceDisconnected(ComponentName componentName) {
-            isBound = false;
-        }
-    };
+
+    public ServiceConnection getServiceConnection(){
+        return serviceConnection = new ServiceConnection() {
+            @Override
+            public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+                //Toast.makeText(MapsActivity.this, "Service Connected!", Toast.LENGTH_LONG).show();
+                UserLocationService.TagBinder tagBinder = (UserLocationService.TagBinder)iBinder;
+                myService = tagBinder.getService();
+                isBound = true;
+                getScore();
+                startDisplayTags();
+            }
+
+            @Override
+            public void onServiceDisconnected(ComponentName componentName) {
+                isBound = false;
+                myService = null;
+                isRunning = false;
+            }
+        };
+    }
+
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        //if(!isBound) {
+        Intent i = new Intent(this, UserLocationService.class);
+        bindService(i, getServiceConnection(), Context.BIND_AUTO_CREATE);
+        isRunning = true;
+        Toast.makeText(this, "onResume!", Toast.LENGTH_SHORT).show();
+        //}
+    }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Toast.makeText(this, "onCreate!", Toast.LENGTH_SHORT).show();
         super.onCreate(savedInstanceState);
         tagList = new ArrayList<Tag>();
         circles = new ArrayList<Circle>();
@@ -165,8 +190,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Scopes.PLUS_LOGIN scope to the GoogleSignInOptions to see the
         // difference.
 
-        Intent i = new Intent(this, UserLocationService.class);
-        bindService(i, serviceConnection, Context.BIND_AUTO_CREATE);
+        //Intent i = new Intent(this, UserLocationService.class);
+        //bindService(i, getServiceConnection(), Context.BIND_AUTO_CREATE);
 
         galleryButton = (Button)findViewById(R.id.gallery_button);
         galleryButton.setOnClickListener(new View.OnClickListener() {
@@ -184,7 +209,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             @Override
             public void onClick(View view) {
                 signOut();
-                finish();
+                //finish();
             }
         });
         // [END customize_button]
@@ -246,7 +271,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         // Toast.makeText(this, "Inside Map ready!", Toast.LENGTH_SHORT).show();
-
+        Toast.makeText(this, "onMapReady!", Toast.LENGTH_SHORT).show();
         mMap = googleMap;
 
         // Get an instance of RequestQueue
@@ -261,17 +286,27 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     Intent i = new Intent(MapsActivity.this, CameraActivity.class);
                     i.putExtra("EmailID", emailID);
                     startActivity(i);
-                    finish();
+                    //finish();
                 }else{
                     float[] distance = new float[1];
-                    Location.distanceBetween(lat, lng, circle.getCenter().latitude, circle.getCenter().longitude, distance);
+                    double cLat = circle.getCenter().latitude;
+                    double cLong = circle.getCenter().longitude;
+                    Location.distanceBetween(lat, lng, cLat, cLong, distance);
                     boolean check = distance[0] <= 5;
 
-                    if(check){
+                    if(true){
                         Toast.makeText(MapsActivity.this, "Distance:"+distance[0]+", Within 5m!", Toast.LENGTH_SHORT).show();
-                        Intent i = new Intent(MapsActivity.this, CollectActivity.class);
-                        startActivity(i);
-                        finish();
+                        int j = 0;
+                        Tag t = null;
+                        while(j < tagList.size()){
+                            if(tagList.get(j).getLatitude() == cLat && tagList.get(j).getLongitude() == cLong){
+                                t = tagList.get(j);
+                                break;
+                            }
+                            j++;
+                        }
+                        getTagDetails(t);
+                        //finish();
                     }else{
                         Toast.makeText(MapsActivity.this, "Distance:"+distance[0]+", Not within 5m to collect!", Toast.LENGTH_SHORT).show();
                     }
@@ -291,12 +326,49 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         try {
             //wait(1000);
             // initiating the threads which continuously update the score and place nearbyTags in 50m*50m
-            isRunning = true;
-            getScore();
-            startDisplayTags();
+            //isRunning = true;
+            //getScore();
+            //startDisplayTags();
         }catch(Exception e){
 
         }
+    }
+
+
+    public void getTagDetails(Tag t){
+        final Tag tag = t;
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, urlFindTag, new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+                if(response != null) {
+                    String parameters[] = response.split(",");
+                    tag.setImageURL(parameters[0]);
+                    tag.setAzimuth(Float.parseFloat(parameters[1]));
+                    tag.setAltitude(Float.parseFloat(parameters[2]));
+                    Intent i = new Intent(MapsActivity.this, CollectActivity.class);
+                    i.putExtra("CollectTag", tag);
+                    i.putExtra("EmailID", emailID);
+                    startActivity(i);
+                }
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+
+            }
+        }){
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                Map<String, String> param_map = new HashMap<String, String>();
+                param_map.put("tag_id", tag.getTagID());
+                return param_map;
+            }
+        };
+        // Setting all the string requests sent with a tag so that they can be tracked and removed in onStop() method (claen-up).
+        stringRequest.setTag(TAG);
+
+        // Adding the request to the RequestQueue
+        RequestQueueSingleton.getInstance(MapsActivity.this).addToRequestQueue(stringRequest);
     }
 
     /**
@@ -339,14 +411,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      * Function which starts a thread which places nearByTags in 50m*50m continuously.
      */
     public void startDisplayTags() {
-        //Toast.makeText(MapsActivity.this, "Tags Thread!, isRunning = "+isRunning, Toast.LENGTH_SHORT).show();
+        Toast.makeText(MapsActivity.this, "Tags Thread!, isRunning = "+isRunning, Toast.LENGTH_SHORT).show();
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
                 while (isRunning) {
                     synchronized (this) {
                         try {
-                            wait(1000);
+                            wait(1200);
                             //getNearbyTags("ssshett3@asu.edu", lat, lng);
                             handlerCurrentLocation.sendEmptyMessage(0);
                             getNearbyTags();
@@ -388,7 +460,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      * Sends a post request to getscore.php with field: email id & its value passed in the body of the HTTP Request.
      */
     public void getScore(){
-        // Toast.makeText(MapsActivity.this, "Score Thread!, isRunning = "+isRunning, Toast.LENGTH_SHORT).show();
+        Toast.makeText(MapsActivity.this, "Score Thread!, isRunning = "+isRunning, Toast.LENGTH_SHORT).show();
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -479,8 +551,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      */
 
     public void setUserLocation(Location location){
-        if(location == null)
-            Toast.makeText(this, "Cant get current location!", Toast.LENGTH_LONG).show();
+        if(location == null) {
+            //Toast.makeText(this, "Cant get current location!", Toast.LENGTH_SHORT).show();
+        }
         else{
             lng = location.getLongitude();
             lat = location.getLatitude();
@@ -522,7 +595,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     longitude = Double.parseDouble(parameters[i++]);
                     latitude = Double.parseDouble(parameters[i++]);
                     Tag t = new Tag(id ,latitude, longitude);
-                    //tagList.add(t);
+                    tagList.add(t);
                     LatLng loc = new LatLng(latitude, longitude);
                     CircleOptions copt = new CircleOptions()
                             .center(loc)
@@ -574,6 +647,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         while(i < circles.size()){
             circles.get(i).remove();
             polylines.get(i).remove();
+            tagList.clear();
             i++;
         }
         circle_c = null;
@@ -598,6 +672,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     protected void onStop() {
         super.onStop();
+        isRunning = false;
         if(isBound){
             unbindService(serviceConnection);
             isBound = false;
@@ -606,7 +681,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if(rq != null){
             rq.cancelAll(TAG);
         }
+        Toast.makeText(this, "onStop!", Toast.LENGTH_SHORT).show();
     }
+
+
+
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {

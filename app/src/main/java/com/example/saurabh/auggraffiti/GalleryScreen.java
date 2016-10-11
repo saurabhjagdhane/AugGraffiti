@@ -60,7 +60,7 @@ public class GalleryScreen extends AppCompatActivity {
                 //Toast.makeText(GalleryScreen.this, "getgallery.php response: "+response, Toast.LENGTH_SHORT).show();
                     String[] imageUrls = {"http://www.freedigitalphotos.net/images/img/homepage/87357.jpg",
                     "http://www.planwallpaper.com/static/images/Winter-Tiger-Wild-Cat-Images.jpg",
-                    "https://cdn.spacetelescope.org/archives/images/large/heic1509a.jpg"};
+                    };
                     adapter = new GalleryViewAdapter(GalleryScreen.this, R.layout.grid_view_item, imageUrls);
                     gridView.setAdapter(adapter);
                 //}

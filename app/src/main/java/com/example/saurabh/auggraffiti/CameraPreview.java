@@ -17,12 +17,18 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.ImageFormat;
+import android.graphics.Rect;
+import android.graphics.YuvImage;
 import android.hardware.Camera;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 import static android.support.v4.app.ActivityCompat.requestPermissions;
@@ -35,6 +41,8 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     public String TAG = "Debugging";
     private static Context ctx;
     private static boolean isOpened = false;
+    private Bitmap cameraBitmap;
+    private byte bytes[];
 
     public CameraPreview(Context context, Camera camera) {
         super(context);
@@ -47,6 +55,11 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         mHolder.addCallback(this);
         // deprecated setting, but required on Android versions prior to 3.0
         mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+
+    }
+
+    public byte[] getCameraBitmap(){
+        return this.bytes;
     }
 
     public void surfaceCreated(SurfaceHolder holder) {
@@ -78,6 +91,8 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         }
         catch (IOException exception)
         {
+            mCamera.stopPreview();
+            mCamera.setPreviewCallback(null);
             mCamera.release();
             mCamera = null;
         }
@@ -118,8 +133,25 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
                 mCamera.setDisplayOrientation(0);
 
             }
-            // start preview with new settings
 
+            // start preview with new settings
+            mCamera.setPreviewCallback(new Camera.PreviewCallback() {
+                @Override
+                public void onPreviewFrame(byte[] bytes, Camera camera) {
+                    Camera.Parameters parameters = camera.getParameters();
+                    Camera.Size size = parameters.getPreviewSize();
+                    YuvImage image = new YuvImage(bytes, ImageFormat.NV21,
+                            size.width, size.height, null);
+                    Rect rectangle = new Rect();
+                    rectangle.bottom = size.height;
+                    rectangle.top = 0;
+                    rectangle.left = 0;
+                    rectangle.right = size.width;
+                    ByteArrayOutputStream out2 = new ByteArrayOutputStream();
+                    image.compressToJpeg(rectangle, 100, out2);
+                    CameraPreview.this.bytes = out2.toByteArray();
+                }
+            });
             mCamera.setPreviewDisplay(mHolder);
             mCamera.startPreview();
 

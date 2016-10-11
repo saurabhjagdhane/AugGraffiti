@@ -31,10 +31,7 @@ import com.google.android.gms.location.LocationServices;
 
 
 public class UserLocationService extends Service implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, com.google.android.gms.location.LocationListener, SensorEventListener{
-    private static  final String TAG = "nearbyTags";
     private final IBinder service = new TagBinder();
-    private final static String url = "http://roblkw.com/msa/neartags.php";
-    private String postResponse;
     private static RequestQueue rq;
     private String emailID = "";
     private Location location;
@@ -64,7 +61,7 @@ public class UserLocationService extends Service implements GoogleApiClient.Conn
 
     @Override
     public IBinder onBind(Intent intent) {
-        //Toast.makeText(this, "service binded!", Toast.LENGTH_LONG).show();
+        Toast.makeText(this, "service binded!", Toast.LENGTH_LONG).show();
         rq = RequestQueueSingleton.getInstance(this.getApplicationContext()).getRequestQueue();
         //Bundle extraData = intent.getExtras();
         //Object a =  extraData.getString("MapObject");
@@ -127,8 +124,9 @@ public class UserLocationService extends Service implements GoogleApiClient.Conn
 
     @Override
     public void onLocationChanged(Location location) {
-        if(location == null)
-            Toast.makeText(this, "Cant get current location!", Toast.LENGTH_LONG).show();
+        if(location == null) {
+            //Toast.makeText(this, "Cant get current location!", Toast.LENGTH_LONG).show();
+        }
         else {
             this.location = location;
             lng = location.getLongitude();
@@ -188,8 +186,11 @@ public class UserLocationService extends Service implements GoogleApiClient.Conn
 
     }
 
-
-
+    @Override
+    public boolean onUnbind(Intent intent) {
+        Toast.makeText(this, "Unbinded!", Toast.LENGTH_LONG).show();
+        return super.onUnbind(intent);
+    }
 
     public class TagBinder extends Binder{
         UserLocationService getService(){

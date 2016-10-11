@@ -1,12 +1,64 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:paddingBottom="@dimen/activity_vertical_margin"
-    android:paddingLeft="@dimen/activity_horizontal_margin"
-    android:paddingRight="@dimen/activity_horizontal_margin"
-    android:paddingTop="@dimen/activity_vertical_margin"
-    tools:context="com.example.saurabh.auggraffiti.CollectActivity">
+    android:orientation="horizontal"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    >
 
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/cameraImageView1" />
+    <FrameLayout
+        android:id="@+id/collect_layout"
+        android:layout_width="fill_parent"
+        android:layout_height="465dp"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true">
+
+
+
+        <ImageView
+            android:layout_width="250dp"
+            android:layout_height="300dp"
+            android:scaleType="fitXY"
+            android:id="@+id/collect_tagView"
+            android:layout_gravity="center" />
+
+    </FrameLayout>
+
+    <TextView
+        android:layout_width="109dp"
+        android:layout_height="48dp"
+        android:text="0"
+        android:id="@+id/text_distance"
+        android:layout_gravity="left|bottom"
+        android:textAlignment="center"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true" />
+
+    <TextView
+        android:layout_width="109dp"
+        android:layout_height="48dp"
+        android:text="0"
+        android:id="@+id/text_tag_azimuth"
+        android:layout_gravity="center_horizontal|bottom"
+        android:textAlignment="center"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true" />
+
+    <TextView
+        android:layout_width="109dp"
+        android:layout_height="48dp"
+        android:text="0"
+        android:id="@+id/text_azimuth"
+        android:layout_gravity="right|bottom"
+        android:textAlignment="center"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true" />
 </RelativeLayout>

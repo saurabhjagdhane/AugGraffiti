@@ -61,12 +61,12 @@ public class CameraActivity extends AppCompatActivity {
 
     private DrawingScreen dv;
     private Paint mPaint;
-    private OutputStream outputStream = null;
+
 
     private static final String urlPlaceTag = "http://roblkw.com/msa/placetag.php";
     private static final String TAG = "PlaceTag";
 
-    private UserLocationService myService;
+    private UserLocationService myService;private OutputStream outputStream = null;
     private static boolean isBound = false;
 
     private double lat;
@@ -123,14 +123,19 @@ public class CameraActivity extends AppCompatActivity {
                 lng = location[1];
 
                 bitmap = dv.getmBitmap();
+                Bitmap b = Bitmap.createBitmap(bitmap.getWidth(), bitmap.getHeight(), Bitmap.Config.ARGB_8888);
+                Canvas c = new Canvas(b);
+                c.drawColor(Color.TRANSPARENT);
+                c.drawBitmap(bitmap, 0, 0, null);
+
                 ByteArrayOutputStream stream =  new ByteArrayOutputStream();
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 30, stream);
+                b.compress(Bitmap.CompressFormat.JPEG, 30, stream);
                 //final File f = new File(CameraActivity.this.getFilesDir(), "image.jpg");
                 File f = new File(Environment.getExternalStoragePublicDirectory(
                         Environment.DIRECTORY_PICTURES), "tagImage.jpg");
-
+                final String base64EncodedImage = Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP);
                 try {
-                    final String base64EncodedImage = Base64.encodeToString(stream.toByteArray(), Base64.DEFAULT);
+
                     Log.d("response:", "Azimuth: "+location[2]+", Altitude: "+location[3]+", base64: "+base64EncodedImage);
                     outputStream = new BufferedOutputStream(new FileOutputStream(f));
                     outputStream.write(stream.toByteArray());
@@ -245,6 +250,8 @@ public class CameraActivity extends AppCompatActivity {
             serviceConnection = null;
         }
         if(mCamera != null) {
+            mCamera.stopPreview();
+            mCamera.setPreviewCallback(null);
             mCamera.release();
             mCamera = null;
         }
@@ -252,15 +259,16 @@ public class CameraActivity extends AppCompatActivity {
     }
 
 
-
+    /*
     @Override
     public void onBackPressed() {
-        super.onBackPressed();
+        //super.onBackPressed();
         Intent i = new Intent(this, MapsActivity.class);
         i.putExtra("EmailID", emailID);
         startActivity(i);
-        mCamera.release();
-        mCamera = null;
-    }
-
+        if(mCamera != null) {
+            mCamera.release();
+            mCamera = null;
+        }
+    }*/
 }
