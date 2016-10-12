@@ -174,6 +174,7 @@ public class CollectActivity extends AppCompatActivity {
                     //check = true;
                     if (azimuth == tag.getAzimuth() && check) {
                         isRunning = false;
+                        getBase64EncodedString();
                         StringRequest stringRequest = new StringRequest(Request.Method.POST, urlCollectTag, new Response.Listener<String>() {
                             @Override
                             public void onResponse(String response) {
@@ -210,8 +211,8 @@ public class CollectActivity extends AppCompatActivity {
     }
 
 
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
+
+    public void getBase64EncodedString() {
         b = Bitmap.createBitmap(mPreview.getWidth(), mPreview.getHeight(), Bitmap.Config.ARGB_8888);
         c = new Canvas(b);
 
@@ -254,7 +255,6 @@ public class CollectActivity extends AppCompatActivity {
        }catch(Exception e){
             e.printStackTrace();
         }
-        return super.onTouchEvent(event);
     }
 
 
