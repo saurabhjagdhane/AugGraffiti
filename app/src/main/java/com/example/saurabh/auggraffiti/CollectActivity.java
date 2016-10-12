@@ -160,6 +160,13 @@ public class CollectActivity extends AppCompatActivity {
         }
     };
 
+    Handler handlerCaptureView = new Handler(){
+        @Override
+        public void handleMessage(Message msg) {
+            getBase64EncodedString();
+        }
+    };
+
     public void startThread(){
         Thread t =new Thread(new Runnable() {
             @Override
@@ -172,9 +179,9 @@ public class CollectActivity extends AppCompatActivity {
                     handlerTextViews.sendEmptyMessage(0);
                     boolean check = distance[0] <= 5;
                     //check = true;
-                    if (azimuth == tag.getAzimuth() && check) {
+                    if (((azimuth >= tag.getAzimuth()-5) && (azimuth <= tag.getAzimuth()+5)) && check) {
                         isRunning = false;
-                        getBase64EncodedString();
+                        handlerCaptureView.sendEmptyMessage(0);
                         StringRequest stringRequest = new StringRequest(Request.Method.POST, urlCollectTag, new Response.Listener<String>() {
                             @Override
                             public void onResponse(String response) {
@@ -236,7 +243,7 @@ public class CollectActivity extends AppCompatActivity {
         niv.draw(c1);
         Matrix m = new Matrix();
 
-        m.postTranslate(b1.getWidth() / 4, b1.getHeight() / 3); // Centers imag
+        m.postTranslate(b1.getWidth() / 4, b1.getHeight() / 3); // to center the image
         c.drawBitmap(b1, m, null);
 
         ByteArrayOutputStream stream =  new ByteArrayOutputStream();
@@ -264,7 +271,7 @@ public class CollectActivity extends AppCompatActivity {
 //            niv.getLayoutParams().height = 50;
         //          niv.getLayoutParams().width = 50;
         niv = (ImageView)findViewById(R.id.collect_tagView);
-        imageLoader.get("http://www.freedigitalphotos.net/images/img/homepage/87357.jpg",ImageLoader.getImageListener(niv, R.mipmap.default_image_gallery, R.mipmap.error_image_gallery));
+        imageLoader.get(tag.getImageURL(),ImageLoader.getImageListener(niv, R.mipmap.default_image_gallery, R.mipmap.error_image_gallery));
         /*
         Log.d("response:", "Image width & height:" + niv.getWidth()+ " ," + niv.getHeight());
         Matrix m = new Matrix();

@@ -117,15 +117,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 UserLocationService.TagBinder tagBinder = (UserLocationService.TagBinder)iBinder;
                 myService = tagBinder.getService();
                 isBound = true;
-                getScore();
-                startDisplayTags();
             }
 
             @Override
             public void onServiceDisconnected(ComponentName componentName) {
                 isBound = false;
                 myService = null;
-                isRunning = false;
             }
         };
     }
@@ -135,17 +132,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onResume() {
         super.onResume();
         //if(!isBound) {
-        Intent i = new Intent(this, UserLocationService.class);
-        bindService(i, getServiceConnection(), Context.BIND_AUTO_CREATE);
-        isRunning = true;
-        Toast.makeText(this, "onResume!", Toast.LENGTH_SHORT).show();
+        //Intent i = new Intent(this, UserLocationService.class);
+        //bindService(i, getServiceConnection(), Context.BIND_AUTO_CREATE);
+        //isRunning = true;
+       // Toast.makeText(this, "onResume!", Toast.LENGTH_SHORT).show();
         //}
     }
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Toast.makeText(this, "onCreate!", Toast.LENGTH_SHORT).show();
+        //Toast.makeText(this, "onCreate!", Toast.LENGTH_SHORT).show();
         super.onCreate(savedInstanceState);
         tagList = new ArrayList<Tag>();
         circles = new ArrayList<Circle>();
@@ -171,6 +168,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .requestEmail()
                 .build();
         // [END configure_signin]
+
+        Intent i = new Intent(this, UserLocationService.class);
+        bindService(i, getServiceConnection(), Context.BIND_AUTO_CREATE);
 
         // [START build_client]
         // Build a GoogleApiClient with access to the Google Sign-In API and the
@@ -209,7 +209,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             @Override
             public void onClick(View view) {
                 signOut();
-                //finish();
+                finish();
             }
         });
         // [END customize_button]
@@ -271,7 +271,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         // Toast.makeText(this, "Inside Map ready!", Toast.LENGTH_SHORT).show();
-        Toast.makeText(this, "onMapReady!", Toast.LENGTH_SHORT).show();
+        //Toast.makeText(this, "onMapReady!", Toast.LENGTH_SHORT).show();
         mMap = googleMap;
 
         // Get an instance of RequestQueue
@@ -326,9 +326,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         try {
             //wait(1000);
             // initiating the threads which continuously update the score and place nearbyTags in 50m*50m
-            //isRunning = true;
-            //getScore();
-            //startDisplayTags();
+            isRunning = true;
+            getScore();
+            startDisplayTags();
         }catch(Exception e){
 
         }
@@ -377,6 +377,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     Handler handlerCurrentLocation = new Handler(){
         @Override
         public void handleMessage(Message msg) {
+            //while(myService==null);
             setUserLocation(myService.getLocation());
             //addLines(latitude, longitude, lat, lng);
         }
@@ -411,7 +412,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      * Function which starts a thread which places nearByTags in 50m*50m continuously.
      */
     public void startDisplayTags() {
-        Toast.makeText(MapsActivity.this, "Tags Thread!, isRunning = "+isRunning, Toast.LENGTH_SHORT).show();
+        //Toast.makeText(MapsActivity.this, "Tags Thread!, isRunning = "+isRunning, Toast.LENGTH_SHORT).show();
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -460,7 +461,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      * Sends a post request to getscore.php with field: email id & its value passed in the body of the HTTP Request.
      */
     public void getScore(){
-        Toast.makeText(MapsActivity.this, "Score Thread!, isRunning = "+isRunning, Toast.LENGTH_SHORT).show();
+        //Toast.makeText(MapsActivity.this, "Score Thread!, isRunning = "+isRunning, Toast.LENGTH_SHORT).show();
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -672,7 +673,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     protected void onStop() {
         super.onStop();
-        isRunning = false;
+        //isRunning = false;
         if(isBound){
             unbindService(serviceConnection);
             isBound = false;
@@ -681,7 +682,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if(rq != null){
             rq.cancelAll(TAG);
         }
-        Toast.makeText(this, "onStop!", Toast.LENGTH_SHORT).show();
+        //Toast.makeText(this, "onStop!", Toast.LENGTH_SHORT).show();
     }
 
 

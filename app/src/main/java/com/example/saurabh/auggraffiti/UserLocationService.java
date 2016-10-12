@@ -53,7 +53,7 @@ public class UserLocationService extends Service implements GoogleApiClient.Conn
     float roll;
     double altitude;
 
-    static int ACCE_FILTER_DATA_MIN_TIME = 1000; // 1000ms
+    static int ACCE_FILTER_DATA_MIN_TIME = 100; // 1000ms
     long lastSaved = System.currentTimeMillis();
 
     public UserLocationService() {

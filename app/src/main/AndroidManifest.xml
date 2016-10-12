@@ -66,7 +66,8 @@
         <activity
             android:name=".CameraActivity"
             android:screenOrientation="portrait" />
-        <activity android:name=".CollectActivity" />
+        <activity android:name=".CollectActivity"
+            android:screenOrientation="portrait"/>
         <activity android:name=".GalleryScreen" />
         <activity android:name=".SingleTagView"></activity>
         <service android:name=".UserLocationService" android:enabled="true"></service>

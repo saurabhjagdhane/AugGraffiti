@@ -55,15 +55,13 @@ public class GalleryScreen extends AppCompatActivity {
         StringRequest stringRequest = new StringRequest(Request.Method.POST, urlGallery, new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
-                //if(response!=null) {
-                    //String[] imageUrls = response.split(",");
+                if(response!=null) {
+                    String[] imageUrls = response.split(",");
                 //Toast.makeText(GalleryScreen.this, "getgallery.php response: "+response, Toast.LENGTH_SHORT).show();
-                    String[] imageUrls = {"http://www.freedigitalphotos.net/images/img/homepage/87357.jpg",
-                    "http://www.planwallpaper.com/static/images/Winter-Tiger-Wild-Cat-Images.jpg",
-                    };
+                    //String[] imageUrls = {"http://www.freedigitalphotos.net/images/img/homepage/87357.jpg","http://www.planwallpaper.com/static/images/Winter-Tiger-Wild-Cat-Images.jpg",};
                     adapter = new GalleryViewAdapter(GalleryScreen.this, R.layout.grid_view_item, imageUrls);
                     gridView.setAdapter(adapter);
-                //}
+                }
             }
         }, new Response.ErrorListener() {
             @Override

@@ -23,7 +23,7 @@
 
         <ImageView
             android:layout_width="250dp"
-            android:layout_height="300dp"
+            android:layout_height="250dp"
             android:scaleType="fitXY"
             android:id="@+id/collect_tagView"
             android:layout_gravity="center" />
