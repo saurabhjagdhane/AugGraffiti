@@ -8,11 +8,12 @@
     <ImageView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:scaleType="fitXY"
         android:id="@+id/cameraImageView1" />
     <FrameLayout
         android:id="@+id/collect_layout"
         android:layout_width="fill_parent"
-        android:layout_height="465dp"
+        android:layout_height="fill_parent"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"
         android:layout_alignParentLeft="true"
@@ -23,8 +24,8 @@
 
 
         <ImageView
-            android:layout_width="250dp"
-            android:layout_height="250dp"
+            android:layout_width="230dp"
+            android:layout_height="230dp"
             android:scaleType="fitXY"
             android:id="@+id/collect_tagView"
             android:layout_gravity="center" />
@@ -32,34 +33,81 @@
     </FrameLayout>
 
     <TextView
-        android:layout_width="109dp"
-        android:layout_height="48dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:text="0"
         android:id="@+id/text_distance"
         android:layout_gravity="left|bottom"
         android:textAlignment="center"
         android:layout_alignParentBottom="true"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true" />
+        android:layout_toEndOf="@+id/textView"
+        android:textColor="#ee1212"
+        android:layout_below="@+id/collect_layout"
+        android:layout_alignParentEnd="false"
+        android:layout_alignParentStart="false" />
 
     <TextView
-        android:layout_width="109dp"
-        android:layout_height="48dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:text="0"
         android:id="@+id/text_tag_azimuth"
         android:layout_gravity="center_horizontal|bottom"
         android:textAlignment="center"
         android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true" />
+        android:layout_toEndOf="@+id/textView2"
+        android:textColor="#5db907"
+        android:layout_below="@+id/collect_layout"
+        android:layout_toRightOf="@+id/textView2" />
 
     <TextView
-        android:layout_width="109dp"
+        android:layout_width="wrap_content"
         android:layout_height="48dp"
         android:text="0"
         android:id="@+id/text_azimuth"
-        android:layout_gravity="right|bottom"
         android:textAlignment="center"
         android:layout_alignParentBottom="true"
+        android:textColor="#f29f05"
+        android:layout_toRightOf="@+id/textView3"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="Current Distance:"
+        android:id="@+id/textView"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_below="@+id/collect_layout"
+        android:textColor="#e52e2e"
+        android:layout_alignParentBottom="true" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="Tag Azimuth:"
+        android:id="@+id/textView2"
+        android:textColor="#17ed08"
+        android:layout_alignBottom="@+id/text_tag_azimuth"
+        android:layout_centerHorizontal="true"
+        android:layout_below="@+id/collect_layout"
+        android:layout_alignParentEnd="false"
+        android:layout_alignParentStart="false" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="Current\nAzimuth:"
+        android:id="@+id/textView3"
+        android:textColor="#f29f05"
+        android:layout_below="@+id/collect_layout"
+        android:layout_toRightOf="@+id/text_tag_azimuth"
+        android:layout_toEndOf="@+id/text_tag_azimuth"
+        android:layout_marginLeft="36dp"
+        android:layout_marginStart="36dp"
+        android:layout_alignBottom="@+id/text_tag_azimuth"
+        android:layout_alignParentEnd="false" />
 </RelativeLayout>

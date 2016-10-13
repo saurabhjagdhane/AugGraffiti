@@ -148,7 +148,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
                     rectangle.left = 0;
                     rectangle.right = size.width;
                     ByteArrayOutputStream out2 = new ByteArrayOutputStream();
-                    image.compressToJpeg(rectangle, 30, out2);
+                    image.compressToJpeg(rectangle, 10, out2);
                     CameraPreview.this.bytes = out2.toByteArray();
                 }
             });

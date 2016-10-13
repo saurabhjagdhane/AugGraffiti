@@ -278,7 +278,7 @@ public class MapsActivity extends FragmentActivity implements GoogleApiClient.Co
                     Location.distanceBetween(lat, lng, cLat, cLong, distance);
                     boolean check = distance[0] <= 5;
 
-                    if (true) {
+                    if (check) {
                         Toast.makeText(MapsActivity.this, "Distance:" + distance[0] + ", Within 5m!", Toast.LENGTH_SHORT).show();
                         int j = 0;
                         Tag t = null;
@@ -355,6 +355,41 @@ public class MapsActivity extends FragmentActivity implements GoogleApiClient.Co
         RequestQueueSingleton.getInstance(MapsActivity.this).addToRequestQueue(stringRequest);
     }
 
+
+
+    /**
+     * Handler for tracking current user location.
+     */
+    Handler handlerCurrentLocation = new Handler(){
+        @Override
+        public void handleMessage(Message msg) {
+            setUserLocation();
+            //addLines(latitude, longitude, lat, lng);
+        }
+    };
+
+    /**
+     * Handler for placing tags in 50m*50m.
+     */
+    Handler handlerPlace = new Handler(){
+        @Override
+        public void handleMessage(Message msg) {
+            addOverlays();
+            //addLines(latitude, longitude, lat, lng);
+        }
+    };
+
+
+    /**
+     * Handler for removing duplicate tags in 50m*50m.
+     */
+    Handler handlerRemove = new Handler(){
+        @Override
+        public void handleMessage(Message msg) {
+            removeTags();
+        }
+    };
+
     Double latitude;
     Double longitude;
 
@@ -362,53 +397,98 @@ public class MapsActivity extends FragmentActivity implements GoogleApiClient.Co
      * Function which starts a thread which places nearByTags in 50m*50m continuously.
      */
     public void startDisplayTags() {
-        setUserLocation();
-        getNearbyTags();
-        if (circles.size() > 0) {
-            removeTags();
-        }
-        addOverlays();
+        //Toast.makeText(MapsActivity.this, "Tags Thread!, isRunning = "+isRunning, Toast.LENGTH_SHORT).show();
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+
+                    synchronized (this) {
+                        try {
+                            //wait(1200);
+                            //getNearbyTags("ssshett3@asu.edu", lat, lng);
+                            handlerCurrentLocation.sendEmptyMessage(0);
+                            getNearbyTags();
+                            if(circles.size() > 0) {
+                                handlerRemove.sendEmptyMessage(0);
+                            }
+                            handlerPlace.sendEmptyMessage(0);
+
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+            }
+        });
+        t.start();
     }
 
 
     TextView scoreText;
 
+    /**
+     * Handler which updates the textview for score on Map Activity.
+     */
+    Handler handlerScore = new Handler(){
+        @Override
+        public void handleMessage(Message msg) {
+            scoreText = (TextView)findViewById(R.id.scoreNumber);
+            if(score != null){
+                if(score.matches("[0-9]+")) {
+                    scoreText.setText(score);
+                }
+            }
+        }
+    };
 
     /**
      * Function which starts a thread which updates the score continuously.
      * Sends a post request to getscore.php with field: email id & its value passed in the body of the HTTP Request.
      */
-    public void getScore() {
-        StringRequest stringRequest = new StringRequest(Request.Method.POST, urlGetScore, new Response.Listener<String>() {
+    public void getScore(){
+        //Toast.makeText(MapsActivity.this, "Score Thread!, isRunning = "+isRunning, Toast.LENGTH_SHORT).show();
+        Thread t = new Thread(new Runnable() {
             @Override
-            public void onResponse(String response) {
-                score = response;
-            }
-        }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
+            public void run() {
+
+                    synchronized (this) {
+                        try {
+                            // Runs the loop continuously in an interval of 1 sec.
+                            //wait(1000);
+                            StringRequest stringRequest = new StringRequest(Request.Method.POST, urlGetScore, new Response.Listener<String>() {
+                                @Override
+                                public void onResponse(String response) {
+                                    score = response;
+                                }
+                            }, new Response.ErrorListener() {
+                                @Override
+                                public void onErrorResponse(VolleyError error) {
+
+                                }
+                            }){
+                                @Override
+                                protected Map<String, String> getParams() throws AuthFailureError {
+                                    Map<String, String> param_map = new HashMap<String, String>();
+                                    param_map.put("email", emailID);
+                                    return param_map;
+                                }
+                            };
+                            // Setting all the string requests sent with a tag so that they can be tracked and removed in onStop() method (claen-up).
+                            stringRequest.setTag(TAG);
+
+                            // Adding the request to the RequestQueue
+                            RequestQueueSingleton.getInstance(MapsActivity.this).addToRequestQueue(stringRequest);
+                            handlerScore.sendEmptyMessage(0);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
 
             }
-        }) {
-            @Override
-            protected Map<String, String> getParams() throws AuthFailureError {
-                Map<String, String> param_map = new HashMap<String, String>();
-                param_map.put("email", emailID);
-                return param_map;
-            }
-        };
-        // Setting all the string requests sent with a tag so that they can be tracked and removed in onStop() method (claen-up).
-        stringRequest.setTag(TAG);
-
-        // Adding the request to the RequestQueue
-        RequestQueueSingleton.getInstance(MapsActivity.this).addToRequestQueue(stringRequest);
-        scoreText = (TextView) findViewById(R.id.scoreNumber);
-        if (score != null) {
-            if (score.matches("[0-9]+")) {
-                scoreText.setText(score);
-            }
-        }
+        });
+        t.start();
     }
+
 
 
     /**
@@ -609,7 +689,7 @@ public class MapsActivity extends FragmentActivity implements GoogleApiClient.Co
     public void onConnected(@Nullable Bundle bundle) {
         lr = LocationRequest.create();
         lr.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        lr.setInterval(800);
+        lr.setInterval(2000);
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // TODO: Consider calling
             //    ActivityCompat#requestPermissions

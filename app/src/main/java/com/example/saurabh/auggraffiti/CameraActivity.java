@@ -131,26 +131,14 @@ public class CameraActivity extends AppCompatActivity {
                 ByteArrayOutputStream stream =  new ByteArrayOutputStream();
                 b.compress(Bitmap.CompressFormat.JPEG, 30, stream);
                 //final File f = new File(CameraActivity.this.getFilesDir(), "image.jpg");
-                File f = new File(Environment.getExternalStoragePublicDirectory(
-                        Environment.DIRECTORY_PICTURES), "tagImage.jpg");
                 final String base64EncodedImage = Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP);
                 try {
-
                     Log.d("response:", "Azimuth: "+location[2]+", Altitude: "+location[3]+", base64: "+base64EncodedImage);
-                    outputStream = new BufferedOutputStream(new FileOutputStream(f));
-                    outputStream.write(stream.toByteArray());
-                    /*
-                    outputStream = openFileOutput("image.jpg", Context.MODE_PRIVATE);
-                    outputStream.write(stream.toByteArray());
-                    */
-                    Toast.makeText(CameraActivity.this,f.getAbsolutePath()+", size: "+f.getTotalSpace(),Toast.LENGTH_SHORT).show();
-                    if(outputStream != null){
-                        outputStream.close();
-                    }
                     StringRequest stringRequest = new StringRequest(Request.Method.POST, urlPlaceTag, new Response.Listener<String>() {
                         @Override
                         public void onResponse(String response) {
-                            Toast.makeText(CameraActivity.this, "response: "+response, Toast.LENGTH_SHORT).show();
+                            if(response.equals("0"))
+                                Toast.makeText(CameraActivity.this, "Tag placed successfully", Toast.LENGTH_SHORT).show();
                             Log.d("response:", "PlaceTagResponse:" + response);
                         }
                     }, new Response.ErrorListener() {

@@ -17,6 +17,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.RectF;
 import android.graphics.drawable.BitmapDrawable;
 import android.hardware.Camera;
 import android.hardware.Sensor;
@@ -111,7 +112,7 @@ public class CollectActivity extends AppCompatActivity implements GoogleApiClien
     private float pitch;
     private float roll;
     private double altitude;
-
+    private boolean flag = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -143,6 +144,7 @@ public class CollectActivity extends AppCompatActivity implements GoogleApiClien
     protected void onStart() {
         super.onStart();
         // Create an instance of Camera
+        flag = true;
         mCamera = getCameraInstance();
         renderTagOnCameraView();
         if (mCamera != null) {
@@ -164,14 +166,15 @@ public class CollectActivity extends AppCompatActivity implements GoogleApiClien
 
 
     public void evaluateOrientation(){
-        boolean check = distance[0] <= 5;
+            boolean check = distance[0] <= 5;
         //check = true;
-        if (((azimuth >= tag.getAzimuth()-5) && (azimuth <= tag.getAzimuth()+5)) && check) {
+        if (((azimuth >= tag.getAzimuth()-5) && (azimuth <= tag.getAzimuth()+5)) && check && flag) {
             getBase64EncodedString();
             StringRequest stringRequest = new StringRequest(Request.Method.POST, urlCollectTag, new Response.Listener<String>() {
                 @Override
                 public void onResponse(String response) {
-                    Toast.makeText(CollectActivity.this, "response: " + response, Toast.LENGTH_SHORT).show();
+                    if(response.equals("0"))
+                        Toast.makeText(CollectActivity.this, "Tag collected successfully!!", Toast.LENGTH_SHORT).show();
                     Log.d("response:", "CollectTagResponse:" + response);
                 }
             }, new Response.ErrorListener() {
@@ -186,6 +189,7 @@ public class CollectActivity extends AppCompatActivity implements GoogleApiClien
                     param_map.put("email", emailID);
                     param_map.put("tag_id", tag.getTagID());
                     param_map.put("collect_img", base64EncodedImage);
+                    flag = false;
                     return param_map;
                 }
             };
@@ -194,7 +198,8 @@ public class CollectActivity extends AppCompatActivity implements GoogleApiClien
 
             // Adding the request to the RequestQueue
             RequestQueueSingleton.getInstance(CollectActivity.this).addToRequestQueue(stringRequest);
-            Toast.makeText(CollectActivity.this, "Tag collected successfully!!", Toast.LENGTH_SHORT).show();
+            //Toast.makeText(CollectActivity.this, "Tag collected successfully!!", Toast.LENGTH_SHORT).show();
+            flag = false;
         }
     }
 
@@ -204,43 +209,35 @@ public class CollectActivity extends AppCompatActivity implements GoogleApiClien
         c = new Canvas(b);
 
         bitmapBytes = mPreview.getCameraBitmap();
+        if(bitmapBytes != null) {
+            Log.d("response:", "getCameraBitmap:" + bitmapBytes.length);
+            image = (ImageView) findViewById(R.id.cameraImageView1);
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inMutable = true;
+            cameraBitmap = Bitmap.createBitmap(BitmapFactory.decodeByteArray(bitmapBytes, 0, bitmapBytes.length, options));
+            Matrix matrix = new Matrix();
 
-        Log.d("response:", "getCameraBitmap:" + bitmapBytes.length);
-        image =(ImageView)findViewById(R.id.cameraImageView1);
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inMutable = true;
-        cameraBitmap = Bitmap.createBitmap(BitmapFactory.decodeByteArray(bitmapBytes, 0, bitmapBytes.length, options));
-        Matrix matrix = new Matrix();
+            matrix.postRotate(90);
+            Bitmap rotatedBitmap = Bitmap.createBitmap(cameraBitmap, 0, 0, cameraBitmap.getWidth(), cameraBitmap.getHeight(), matrix, true);
+            image.setImageBitmap(rotatedBitmap);
+            //image.setScaleType(ImageView.ScaleType.FIT_XY);
+            image.draw(c);
+            image.setImageDrawable(null);
 
-        matrix.postRotate(90);
-        Bitmap rotatedBitmap = Bitmap.createBitmap(cameraBitmap , 0, 0, cameraBitmap.getWidth(), cameraBitmap.getHeight(), matrix, true);
-        image.setImageBitmap(rotatedBitmap);
-        image.draw(c);
-        image.setImageDrawable(null);
+            Bitmap b1 = Bitmap.createBitmap(niv.getWidth(), niv.getHeight(), Bitmap.Config.ARGB_8888);
+            Canvas c1 = new Canvas(b1);
+            niv.draw(c1);
+            Matrix m = new Matrix();
+            //RectF drawableRect = new RectF(0, 0, b1.getWidth(), b1.getHeight());
+            // RectF viewRect = new RectF(0, 0, rotatedBitmap.getWidth(), rotatedBitmap.getHeight());
+            //m.setRectToRect(drawableRect, viewRect, Matrix.ScaleToFit.CENTER);
+            m.postTranslate(b1.getWidth() - 50, b1.getHeight()); // to center the image
+            c.drawBitmap(b1, m, null);
 
-        Bitmap b1 = Bitmap.createBitmap(niv.getWidth(), niv.getHeight(), Bitmap.Config.ARGB_8888);
-        Canvas c1 = new Canvas(b1);
-        niv.draw(c1);
-        Matrix m = new Matrix();
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            b.compress(Bitmap.CompressFormat.JPEG, 30, stream);
 
-        m.postTranslate(b1.getWidth() / 4, b1.getHeight() / 3); // to center the image
-        c.drawBitmap(b1, m, null);
-
-        ByteArrayOutputStream stream =  new ByteArrayOutputStream();
-        b.compress(Bitmap.CompressFormat.JPEG, 30, stream);
-
-        File f = new File(Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_PICTURES), "collectImage.jpg");
-        base64EncodedImage = Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP);
-        try {
-            outputStream = new BufferedOutputStream(new FileOutputStream(f));
-            outputStream.write(stream.toByteArray());
-            Toast.makeText(CollectActivity.this, f.getAbsolutePath() + ", size: " + f.getTotalSpace(), Toast.LENGTH_SHORT).show();
-            if (outputStream != null) {
-                outputStream.close();
-            }
-       }catch(Exception e){
-            e.printStackTrace();
+            base64EncodedImage = Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP);
         }
     }
 
@@ -309,7 +306,7 @@ public class CollectActivity extends AppCompatActivity implements GoogleApiClien
     public void onConnected(@Nullable Bundle bundle) {
         lr = LocationRequest.create();
         lr.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        lr.setInterval(800);
+        lr.setInterval(1000);
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // TODO: Consider calling
             //    ActivityCompat#requestPermissions
@@ -342,6 +339,7 @@ public class CollectActivity extends AppCompatActivity implements GoogleApiClien
             Location.distanceBetween(lat, lng, tag.getLatitude(), tag.getLongitude(), distance);
             distanceView.setText(String.valueOf(distance[0]));
             altitude = location.getAltitude();
+
             evaluateOrientation();
         }
     }
