@@ -19,12 +19,18 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.drawable.BitmapDrawable;
 import android.hardware.Camera;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.location.Location;
 import android.media.Image;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -48,6 +54,10 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.ImageLoader;
 import com.android.volley.toolbox.NetworkImageView;
 import com.android.volley.toolbox.StringRequest;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.vision.text.Text;
 
 import java.io.BufferedOutputStream;
@@ -58,7 +68,7 @@ import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-public class CollectActivity extends AppCompatActivity {
+public class CollectActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, com.google.android.gms.location.LocationListener, SensorEventListener {
     private Tag tag;
     private static Camera mCamera;
     private CameraPreview mPreview;
@@ -71,7 +81,6 @@ public class CollectActivity extends AppCompatActivity {
     private byte bitmapBytes[];
     private Bitmap b;
     private Canvas c;
-    private static boolean isRunning = false;
     private String emailID;
     private static final String TAG = "CollectActivity";
     private final static String urlCollectTag = "http://roblkw.com/msa/collecttag.php";
@@ -86,27 +95,22 @@ public class CollectActivity extends AppCompatActivity {
 
     private UserLocationService myService;
     private OutputStream outputStream = null;
-    private static boolean isBound = false;
-    private ServiceConnection serviceConnection;
+    SensorManager sManager;
+    float Rot[]=null; //for gravity rotational data
+    float I[]=null; //for magnetic rotational data
+    float accels[]=new float[3];
+    float mags[]=new float[3];
+    float[] values = new float[3];
+    static int ACCE_FILTER_DATA_MIN_TIME = 100; // 1000ms
+    long lastSaved = System.currentTimeMillis();
 
-
-    public ServiceConnection getServiceConnection() {
-        return serviceConnection = new ServiceConnection() {
-            @Override
-            public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-                //Toast.makeText(CameraActivity.this, "Service Connected!", Toast.LENGTH_LONG).show();
-                UserLocationService.TagBinder tagBinder = (UserLocationService.TagBinder) iBinder;
-                myService = tagBinder.getService();
-                isBound = true;
-                startThread();
-            }
-
-            @Override
-            public void onServiceDisconnected(ComponentName componentName) {
-                isBound = false;
-            }
-        };
-    }
+    private GoogleApiClient client;
+    private Location location;
+    private double lat = 0.0;
+    private double lng = 0.0;
+    private float pitch;
+    private float roll;
+    private double altitude;
 
 
     @Override
@@ -115,6 +119,16 @@ public class CollectActivity extends AppCompatActivity {
         setContentView(R.layout.activity_collect);
         tag = getIntent().getParcelableExtra("CollectTag");
         emailID = getIntent().getExtras().getString("EmailID");
+
+        client = new GoogleApiClient.Builder(this)
+                .addApi(LocationServices.API)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .build();
+        client.connect();
+        sManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        sManager.registerListener(this, sManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),SensorManager.SENSOR_DELAY_NORMAL);
+        sManager.registerListener(this, sManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD),SensorManager.SENSOR_DELAY_NORMAL);
 
         azimuthView = (TextView)findViewById(R.id.text_azimuth);
         distanceView = (TextView)findViewById(R.id.text_distance);
@@ -130,8 +144,6 @@ public class CollectActivity extends AppCompatActivity {
         super.onStart();
         // Create an instance of Camera
         mCamera = getCameraInstance();
-        Intent i = new Intent(this, UserLocationService.class);
-        bindService(i, getServiceConnection(), Context.BIND_AUTO_CREATE);
         renderTagOnCameraView();
         if (mCamera != null) {
             // Create our Preview view and set it as the content of our activity.
@@ -147,76 +159,44 @@ public class CollectActivity extends AppCompatActivity {
             preview.addView(niv);
 
         }
-
-        isRunning = true;
         Toast.makeText(CollectActivity.this, "Stay within 5m radius of this tag and rotate the device to collect tag: ", Toast.LENGTH_SHORT).show();
     }
 
-    Handler handlerTextViews = new Handler(){
-        @Override
-        public void handleMessage(Message msg) {
-            azimuthView.setText(String.valueOf(azimuth));
-            distanceView.setText(String.valueOf(distance[0]));
-        }
-    };
 
-    Handler handlerCaptureView = new Handler(){
-        @Override
-        public void handleMessage(Message msg) {
+    public void evaluateOrientation(){
+        boolean check = distance[0] <= 5;
+        //check = true;
+        if (((azimuth >= tag.getAzimuth()-5) && (azimuth <= tag.getAzimuth()+5)) && check) {
             getBase64EncodedString();
-        }
-    };
-
-    public void startThread(){
-        Thread t =new Thread(new Runnable() {
-            @Override
-           public void run() {
-                while(isRunning) {
-                    final double parameters[] = myService.getParameters();
-                    azimuth = (float) parameters[2];
-                    distance = new float[1];
-                    Location.distanceBetween(parameters[0], parameters[1], tag.getLatitude(), tag.getLongitude(), distance);
-                    handlerTextViews.sendEmptyMessage(0);
-                    boolean check = distance[0] <= 5;
-                    //check = true;
-                    if (((azimuth >= tag.getAzimuth()-5) && (azimuth <= tag.getAzimuth()+5)) && check) {
-                        isRunning = false;
-                        handlerCaptureView.sendEmptyMessage(0);
-                        StringRequest stringRequest = new StringRequest(Request.Method.POST, urlCollectTag, new Response.Listener<String>() {
-                            @Override
-                            public void onResponse(String response) {
-                                Toast.makeText(CollectActivity.this, "response: " + response, Toast.LENGTH_SHORT).show();
-                                Log.d("response:", "CollectTagResponse:" + response);
-                            }
-                        }, new Response.ErrorListener() {
-                            @Override
-                            public void onErrorResponse(VolleyError error) {
-
-                            }
-                        }) {
-                            @Override
-                            protected Map<String, String> getParams() throws AuthFailureError {
-                                Map<String, String> param_map = new HashMap<String, String>();
-                                param_map.put("email", emailID);
-                                param_map.put("tag_id", tag.getTagID());
-                                param_map.put("collect_img", base64EncodedImage);
-                                return param_map;
-                            }
-                        };
-                        // Setting all the string requests sent with a tag so that they can be tracked and removed in onStop() method (claen-up).
-                        stringRequest.setTag(TAG);
-
-                        // Adding the request to the RequestQueue
-                        RequestQueueSingleton.getInstance(CollectActivity.this).addToRequestQueue(stringRequest);
-                        Toast.makeText(CollectActivity.this, "Tag collected successfully!!", Toast.LENGTH_SHORT).show();
-                        break;
-                    }
+            StringRequest stringRequest = new StringRequest(Request.Method.POST, urlCollectTag, new Response.Listener<String>() {
+                @Override
+                public void onResponse(String response) {
+                    Toast.makeText(CollectActivity.this, "response: " + response, Toast.LENGTH_SHORT).show();
+                    Log.d("response:", "CollectTagResponse:" + response);
                 }
-            }
-        });
-        t.start();
-    }
+            }, new Response.ErrorListener() {
+                @Override
+                public void onErrorResponse(VolleyError error) {
 
+                }
+            }) {
+                @Override
+                protected Map<String, String> getParams() throws AuthFailureError {
+                    Map<String, String> param_map = new HashMap<String, String>();
+                    param_map.put("email", emailID);
+                    param_map.put("tag_id", tag.getTagID());
+                    param_map.put("collect_img", base64EncodedImage);
+                    return param_map;
+                }
+            };
+            // Setting all the string requests sent with a tag so that they can be tracked and removed in onStop() method (claen-up).
+            stringRequest.setTag(TAG);
+
+            // Adding the request to the RequestQueue
+            RequestQueueSingleton.getInstance(CollectActivity.this).addToRequestQueue(stringRequest);
+            Toast.makeText(CollectActivity.this, "Tag collected successfully!!", Toast.LENGTH_SHORT).show();
+        }
+    }
 
 
     public void getBase64EncodedString() {
@@ -312,12 +292,6 @@ public class CollectActivity extends AppCompatActivity {
 
     @Override
     protected void onStop() {
-        isRunning = false;
-        if(isBound){
-            unbindService(serviceConnection);
-            isBound = false;
-            serviceConnection = null;
-        }
         if(mCamera != null) {
             mCamera.stopPreview();
             mCamera.setPreviewCallback(null);
@@ -328,5 +302,95 @@ public class CollectActivity extends AppCompatActivity {
             rq.cancelAll(TAG);
         }
         super.onStop();
+    }
+
+    LocationRequest lr;
+    @Override
+    public void onConnected(@Nullable Bundle bundle) {
+        lr = LocationRequest.create();
+        lr.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        lr.setInterval(800);
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+
+        // request location updates continuously in an interval of 1 sec
+        LocationServices.FusedLocationApi.requestLocationUpdates(client, lr, this);
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        if(location == null) {
+            //Toast.makeText(this, "Cant get current location!", Toast.LENGTH_LONG).show();
+        }
+        else {
+            lng = location.getLongitude();
+            lat = location.getLatitude();
+            distance = new float[1];
+            Location.distanceBetween(lat, lng, tag.getLatitude(), tag.getLongitude(), distance);
+            distanceView.setText(String.valueOf(distance[0]));
+            altitude = location.getAltitude();
+            evaluateOrientation();
+        }
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+        Toast.makeText(this, "Connection to LocationServices failed!!", Toast.LENGTH_LONG).show();
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent sensorEvent) {
+        //Toast.makeText(this, "onSensorChanged", Toast.LENGTH_SHORT).show();
+        switch (sensorEvent.sensor.getType()) {
+            case Sensor.TYPE_MAGNETIC_FIELD:
+                mags = sensorEvent.values.clone();
+                break;
+            case Sensor.TYPE_ACCELEROMETER:
+                accels = sensorEvent.values.clone();
+                break;
+        }
+
+        if (mags != null && accels != null) {
+            Rot = new float[9];
+            I = new float[9];
+            SensorManager.getRotationMatrix(Rot, I, accels, mags);
+            // Correct if screen is in Landscape
+
+            float[] outR = new float[9];
+            SensorManager.remapCoordinateSystem(Rot, SensorManager.AXIS_X, SensorManager.AXIS_Z, outR);
+            SensorManager.getOrientation(outR, values);
+
+            //Sensor values displayed at a sample of 1000 msec
+            if ((System.currentTimeMillis() - lastSaved) > ACCE_FILTER_DATA_MIN_TIME) {
+                lastSaved = System.currentTimeMillis();
+                azimuth = values[0] * 57.2957795f; //looks like we don't need this one
+                azimuthView.setText(String.valueOf(azimuth));
+                //Log.d("response:", "Azimuth: "+ azimuth);
+                pitch = values[1] * 57.2957795f;
+                //Log.d("Sensor", "Pitch: "+ pitch);
+                roll = values[2] * 57.2957795f;
+                //Log.d("Sensor", "Roll: "+ roll);
+                mags = null; //retrigger the loop when things are repopulated
+                accels = null; ////retrigger the loop when things are repopulated
+            }
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int i) {
+
     }
 }

@@ -92,7 +92,7 @@ public class MainActivity extends AppCompatActivity implements
             handleSignInResult(result);
         } else {
             //If the user hasn't signed in previously then this will try to do single sign-on
-            showProgressDialog();
+//            showProgressDialog();
             opr.setResultCallback(new ResultCallback<GoogleSignInResult>() {
                 @Override
                 public void onResult(GoogleSignInResult googleSignInResult) {
@@ -193,7 +193,7 @@ public class MainActivity extends AppCompatActivity implements
             myProgressDialog.setIndeterminate(true);
         }
 
-       myProgressDialog.show();
+//       myProgressDialog.show();
     }
 
     //Progress dialog is hidden.
