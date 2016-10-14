@@ -1,3 +1,8 @@
+/**
+ * GalleryViewAdapter used by GalleryScreen Activity to load the collected tags in its grid view layout.
+ * getView function overridden and implemented.
+ */
+
 package com.example.saurabh.auggraffiti;
 
 import android.content.Context;
@@ -34,6 +39,9 @@ public class GalleryViewAdapter extends BaseAdapter{
         //Toast.makeText(context, imagesList[1], Toast.LENGTH_SHORT).show();
     }
 
+    /**
+     * getView function is invoked by the adapter only if no of images in the list is non-zero.
+     */
     @Override
     public int getCount() {
         return imagesList.length;
@@ -49,6 +57,9 @@ public class GalleryViewAdapter extends BaseAdapter{
         return 0;
     }
 
+    /**
+     * Creates ImageViews dynamically, loaded using ImageLoader and returned.
+     */
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         //Toast.makeText(context, "getview, position: "+position, Toast.LENGTH_SHORT).show();

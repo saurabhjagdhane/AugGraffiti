@@ -1,3 +1,7 @@
+/**
+ * UserLocation service which generates Location details and Sensor data
+ */
+
 package com.example.saurabh.auggraffiti;
 
 import android.app.Service;
@@ -44,21 +48,25 @@ public class UserLocationService extends Service implements GoogleApiClient.Conn
     SensorManager sManager;
     float Rot[]=null; //for gravity rotational data
     float I[]=null; //for magnetic rotational data
-    float accels[]=new float[3];
+    float accel[]=new float[3];
     float mags[]=new float[3];
     float[] values = new float[3];
 
     float azimuth;
-    float pitch;
-    float roll;
     double altitude;
 
-    static int ACCE_FILTER_DATA_MIN_TIME = 100; // 1000ms
+    static int SENSOR_INTERVAL = 100; // 1000ms
     long lastSaved = System.currentTimeMillis();
 
     public UserLocationService() {
     }
 
+
+    /**
+     * Invoked when bindservice called by any activity.
+     * Creates a GoogleApiClient object to add LocationServices API.
+     * Create SensorManager object and registers listeners to retrieve data from Accelerometer & Magnetometer.
+     */
     @Override
     public IBinder onBind(Intent intent) {
         Toast.makeText(this, "service binded!", Toast.LENGTH_LONG).show();
@@ -81,27 +89,25 @@ public class UserLocationService extends Service implements GoogleApiClient.Conn
         return service;
     }
 
-    public void setParameters(String emailID, Double Latitude, Double Longitude){
-        this.emailID = emailID;
-        this.lat = Latitude;
-        this.lng = Longitude;
-    }
-
+    /**
+     * Function which is called by any activity which is bounded to this service
+     * to retrieve values for latitude, longitude, azimuth and altitude.
+     */
     public synchronized double[] getParameters(){
         double location[] = {lat, lng, azimuth, altitude};
         return location;
     }
 
-    public synchronized Location getLocation(){
-        return location;
-    }
-
+    /**
+     * Callback method invoked when connected to LocationServices API
+     * Creates a Location Request to get location updates in an interval of 1000ms (1 sec).
+     */
     LocationRequest lr;
     @Override
     public void onConnected(@Nullable Bundle bundle) {
         lr = LocationRequest.create();
         lr.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        lr.setInterval(800);
+        lr.setInterval(1000);
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // TODO: Consider calling
             //    ActivityCompat#requestPermissions
@@ -122,6 +128,11 @@ public class UserLocationService extends Service implements GoogleApiClient.Conn
 
     }
 
+    /**
+     * Callback method invoked continuously in an interval of 1 sec.
+     * Params: Location object
+     * Retrieves latitude, longitude and altitude details
+     */
     @Override
     public void onLocationChanged(Location location) {
         if(location == null) {
@@ -140,6 +151,11 @@ public class UserLocationService extends Service implements GoogleApiClient.Conn
         Toast.makeText(this, "Connection to LocationServices failed!!", Toast.LENGTH_LONG).show();
     }
 
+    /**
+     * Callback method invoked which retrieves data from Accelerometer and Magnetometer sensors
+     * in an interval of 100 ms.
+     * Params: SensorEvent object
+     */
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
         //Toast.makeText(this, "onSensorChanged", Toast.LENGTH_SHORT).show();
@@ -148,14 +164,14 @@ public class UserLocationService extends Service implements GoogleApiClient.Conn
                 mags = sensorEvent.values.clone();
                 break;
             case Sensor.TYPE_ACCELEROMETER:
-                accels = sensorEvent.values.clone();
+                accel = sensorEvent.values.clone();
                 break;
         }
 
-        if (mags != null && accels != null) {
+        if (mags != null && accel != null) {
             Rot = new float[9];
             I = new float[9];
-            SensorManager.getRotationMatrix(Rot, I, accels, mags);
+            SensorManager.getRotationMatrix(Rot, I, accel, mags);
             // Correct if screen is in Landscape
 
             float[] outR = new float[9];
@@ -163,20 +179,14 @@ public class UserLocationService extends Service implements GoogleApiClient.Conn
             SensorManager.getOrientation(outR, values);
 
             //Sensor values displayed at a sample of 1000 msec
-            if ((System.currentTimeMillis() - lastSaved) > ACCE_FILTER_DATA_MIN_TIME) {
+            if ((System.currentTimeMillis() - lastSaved) > SENSOR_INTERVAL) {
                 lastSaved = System.currentTimeMillis();
                 azimuth = values[0] * 57.2957795f; //looks like we don't need this one
                 //azm.setText((int) azimuth);
                 //azm.setText("Azimuth: " + azimuth);
                 //Log.d("response:", "Azimuth: "+ azimuth);
-                pitch = values[1] * 57.2957795f;
-                //Log.d("Sensor", "Pitch: "+ pitch);
-                //ptch.setText("Pitch: " + pitch);
-                roll = values[2] * 57.2957795f;
-                //Log.d("Sensor", "Roll: "+ roll);
-                //rol.setText("Roll: " + roll);
                 mags = null; //retrigger the loop when things are repopulated
-                accels = null; ////retrigger the loop when things are repopulated
+                accel = null; ////retrigger the loop when things are repopulated
             }
         }
     }
@@ -186,9 +196,13 @@ public class UserLocationService extends Service implements GoogleApiClient.Conn
 
     }
 
+    /**
+     * Callback method invoked when any activity
+     * unbinds from the service.
+     */
     @Override
     public boolean onUnbind(Intent intent) {
-        Toast.makeText(this, "Unbinded!", Toast.LENGTH_LONG).show();
+        //Toast.makeText(this, "Unbinded!", Toast.LENGTH_LONG).show();
         return super.onUnbind(intent);
     }
 

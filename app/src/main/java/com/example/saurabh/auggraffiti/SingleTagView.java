@@ -1,3 +1,8 @@
+/**
+ * SingleTagView representing the single tag view image whenever the user
+ * clicks on any of the tag images on the GridView of gallery.
+ */
+
 package com.example.saurabh.auggraffiti;
 
 import android.support.v7.app.AppCompatActivity;

@@ -1,3 +1,9 @@
+/**
+ * GalleryScreen deals with displaying the tags collected by the user.
+ * It uses GridView Layout.
+ * Each image in the gallery can be clicked to view each image.
+ */
+
 package com.example.saurabh.auggraffiti;
 
 import android.content.Intent;
@@ -15,7 +21,6 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.ImageLoader;
 import com.android.volley.toolbox.StringRequest;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -49,7 +54,9 @@ public class GalleryScreen extends AppCompatActivity {
         getImages();
     }
 
-
+    /**
+     * Sends the getgallery.php request which gets the list of image urls corresponding to the collected tags by the user comma separated.
+     */
     public void getImages(){
         //ArrayList images = new ArrayList();
         StringRequest stringRequest = new StringRequest(Request.Method.POST, urlGallery, new Response.Listener<String>() {

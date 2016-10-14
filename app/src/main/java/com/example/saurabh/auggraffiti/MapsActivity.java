@@ -101,23 +101,9 @@ public class MapsActivity extends FragmentActivity implements GoogleApiClient.Co
 
     private static Double lat;
     private static Double lng;
-    private static volatile boolean isRunning = false;
     private Button galleryButton;
-
     private UserLocationService myService;
-    private static volatile boolean isBound = false;
 
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        //if(!isBound) {
-        //Intent i = new Intent(this, UserLocationService.class);
-        //bindService(i, getServiceConnection(), Context.BIND_AUTO_CREATE);
-        //isRunning = true;
-        // Toast.makeText(this, "onResume!", Toast.LENGTH_SHORT).show();
-        //}
-    }
 
 
     @Override
@@ -197,7 +183,6 @@ public class MapsActivity extends FragmentActivity implements GoogleApiClient.Co
             }
         });
         // [END customize_button]
-
     }
 
 
@@ -297,28 +282,12 @@ public class MapsActivity extends FragmentActivity implements GoogleApiClient.Co
                 }
             }
         });
-
-        /*
-        // enabling user location tracking
-        client = new GoogleApiClient.Builder(this)
-                .addApi(LocationServices.API)
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this)
-                .build();
-        client.connect();
-        */
-        try {
-            //wait(1000);
-            // initiating the threads which continuously update the score and place nearbyTags in 50m*50m
-            //isRunning = true;
-            //getScore();
-            //startDisplayTags();
-        } catch (Exception e) {
-
-        }
     }
 
 
+    /**
+     * Sending the findtag.php request and setting the details of the corresponding tag object to be sent to Collect Activity as a parcelable object.
+     */
     public void getTagDetails(Tag t) {
         final Tag tag = t;
         StringRequest stringRequest = new StringRequest(Request.Method.POST, urlFindTag, new Response.Listener<String>() {
@@ -394,7 +363,7 @@ public class MapsActivity extends FragmentActivity implements GoogleApiClient.Co
     Double longitude;
 
     /**
-     * Function which starts a thread which places nearByTags in 50m*50m continuously.
+     * Function which starts a thread which places nearByTags in 50m*50m.
      */
     public void startDisplayTags() {
         //Toast.makeText(MapsActivity.this, "Tags Thread!, isRunning = "+isRunning, Toast.LENGTH_SHORT).show();
@@ -442,7 +411,7 @@ public class MapsActivity extends FragmentActivity implements GoogleApiClient.Co
     };
 
     /**
-     * Function which starts a thread which updates the score continuously.
+     * Function which starts a thread which updates the score.
      * Sends a post request to getscore.php with field: email id & its value passed in the body of the HTTP Request.
      */
     public void getScore(){
@@ -684,6 +653,10 @@ public class MapsActivity extends FragmentActivity implements GoogleApiClient.Co
         Toast.makeText(this, "Connection to LocationServices failed!!", Toast.LENGTH_LONG).show();
     }
 
+    /**
+     * Callback method invoked when connected to LocationServices API
+     * Creates a Location Request to get location updates in an interval of 1000ms (1 sec).
+     */
     LocationRequest lr;
     @Override
     public void onConnected(@Nullable Bundle bundle) {
@@ -710,6 +683,12 @@ public class MapsActivity extends FragmentActivity implements GoogleApiClient.Co
 
     }
 
+    /**
+     * Callback method invoked continuously in an interval of 2 sec.
+     * Params: Location object
+     * Retrieves latitude and longitude.
+     * Invokes methods getScore() and startDisplayTags()
+     */
     @Override
     public void onLocationChanged(Location location) {
         if(location == null) {

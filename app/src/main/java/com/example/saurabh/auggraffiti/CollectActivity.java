@@ -61,10 +61,7 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.vision.text.Text;
 
-import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
@@ -109,8 +106,6 @@ public class CollectActivity extends AppCompatActivity implements GoogleApiClien
     private Location location;
     private double lat = 0.0;
     private double lng = 0.0;
-    private float pitch;
-    private float roll;
     private double altitude;
     private boolean flag = true;
 
@@ -377,10 +372,6 @@ public class CollectActivity extends AppCompatActivity implements GoogleApiClien
                 azimuth = values[0] * 57.2957795f; //looks like we don't need this one
                 azimuthView.setText(String.valueOf(azimuth));
                 //Log.d("response:", "Azimuth: "+ azimuth);
-                pitch = values[1] * 57.2957795f;
-                //Log.d("Sensor", "Pitch: "+ pitch);
-                roll = values[2] * 57.2957795f;
-                //Log.d("Sensor", "Roll: "+ roll);
                 mags = null; //retrigger the loop when things are repopulated
                 accels = null; ////retrigger the loop when things are repopulated
             }

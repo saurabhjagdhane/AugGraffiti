@@ -1,6 +1,6 @@
 /**
- * Tag class represents both tags placed and collected by the user
- * Created for future use (after checkpoint) and implementation.
+ * Tag class(Parcelable) represents both tags placed and collected by the user.
+ * Tag object sent to Collect Activity from the MapsActivity when the user wants to a collect a near-by tag.
  */
 
 package com.example.saurabh.auggraffiti;
@@ -32,6 +32,11 @@ public class Tag implements Parcelable{
         altitude = in.readFloat();
     }
 
+    /**
+     * Class implementing Parcelable interface must have a static final Creator initialization
+     * which invokes createFromParcel function that returns a new Tag object when a parcelable
+     * object is sent using tha intent.
+     */
     public static final Creator<Tag> CREATOR = new Creator<Tag>() {
         @Override
         public Tag createFromParcel(Parcel in) {
