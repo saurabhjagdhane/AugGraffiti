@@ -1,8 +1,9 @@
-/*
-    This is the sample collect activity which would be explained in upcoming phase.
-    This may be changed to placeTag or placing and collecting can be combined within an activity.
-    Design decision pending...
-    Description to be updated by 5th October. Stay tuned...!!
+/**
+ * CollectActivity is used for collecting tags placed in real world.
+ * CollectActivity is allowed only when user is within 5 meter distance from a tag.
+ * This activity also continuously monitors user's distance from the tag being collected.
+ * And this keeps tracks of Azimuth angle of the device as well as mentions target Azimuth angle at which tag can be collected.
+ * We're having +5 or -5 as a threshold of azimuth matching to collect tag. Enjoy Capturing....!!!
  */
 package com.example.saurabh.auggraffiti;
 
@@ -66,11 +67,13 @@ import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
+@SuppressWarnings("deprecation")
+// Implementing SensorEventListener for Azimuth angle data
 public class CollectActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, com.google.android.gms.location.LocationListener, SensorEventListener {
     private Tag tag;
     private static Camera mCamera;
     private CameraPreview mPreview;
-    public static final int MY_CAMERA_REQUEST_CODE = 1015;
+    public static final int MY_CAMERA_REQUEST_CODE = 110394;
     private static ImageLoader imageLoader;
     private FrameLayout preview;
     private ImageView niv;
@@ -94,15 +97,15 @@ public class CollectActivity extends AppCompatActivity implements GoogleApiClien
     private UserLocationService myService;
     private OutputStream outputStream = null;
     SensorManager sManager;
-    float Rot[]=null; //for gravity rotational data
-    float I[]=null; //for magnetic rotational data
+    float gRot[]=null; //for gravity rotational data
+    float mRot[]=null; //for magnetic rotational data
     float accels[]=new float[3];
     float mags[]=new float[3];
     float[] values = new float[3];
-    static int ACCE_FILTER_DATA_MIN_TIME = 100; // 1000ms
-    long lastSaved = System.currentTimeMillis();
+    static int MIN_TIME = 100; // 100ms
+    long lastSaved = System.currentTimeMillis(); // This is used to set sampling time for sensor data
 
-    private GoogleApiClient client;
+    private GoogleApiClient client;  // Google play services integration
     private Location location;
     private double lat = 0.0;
     private double lng = 0.0;
@@ -113,23 +116,31 @@ public class CollectActivity extends AppCompatActivity implements GoogleApiClien
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_collect);
-        tag = getIntent().getParcelableExtra("CollectTag");
-        emailID = getIntent().getExtras().getString("EmailID");
+        tag = getIntent().getParcelableExtra("CollectTag");  // Get tag ID from Intent
+        emailID = getIntent().getExtras().getString("EmailID");  // Get email-ID from Intent
 
+        // GoogleApiClient connection
         client = new GoogleApiClient.Builder(this)
                 .addApi(LocationServices.API)
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
                 .build();
         client.connect();
+
+        // Sensor Manager
         sManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+
+        // Registering Listener for Accelerometer data
         sManager.registerListener(this, sManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),SensorManager.SENSOR_DELAY_NORMAL);
+
+        // Registering Listener for Magnetometer data
         sManager.registerListener(this, sManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD),SensorManager.SENSOR_DELAY_NORMAL);
 
         azimuthView = (TextView)findViewById(R.id.text_azimuth);
         distanceView = (TextView)findViewById(R.id.text_distance);
         tagOrientationView = (TextView)findViewById(R.id.text_tag_azimuth);
         tagOrientationView.setText(String.valueOf(tag.getAzimuth()));
+
         // Get an instance of RequestQueue
         rq = RequestQueueSingleton.getInstance(this.getApplicationContext()).getRequestQueue();
     }
@@ -144,7 +155,6 @@ public class CollectActivity extends AppCompatActivity implements GoogleApiClien
         renderTagOnCameraView();
         if (mCamera != null) {
             // Create our Preview view and set it as the content of our activity.
-
             mPreview = new CameraPreview(this, mCamera);
 
             preview = (FrameLayout) findViewById(R.id.collect_layout);
@@ -160,11 +170,13 @@ public class CollectActivity extends AppCompatActivity implements GoogleApiClien
     }
 
 
+    // This method is the core of this activity as it evaluates azimuth angle and also Distance from tag.
+    // flag variable is used to make sure that every tag is collected once in an activity cycle.
     public void evaluateOrientation(){
-            boolean check = distance[0] <= 5;
+        boolean check = distance[0] <= 5;  // Check if distance is less than 5 meters
         //check = true;
         if (((azimuth >= tag.getAzimuth()-5) && (azimuth <= tag.getAzimuth()+5)) && check && flag) {
-            getBase64EncodedString();
+            getBase64EncodedString(); // get the tag
             StringRequest stringRequest = new StringRequest(Request.Method.POST, urlCollectTag, new Response.Listener<String>() {
                 @Override
                 public void onResponse(String response) {
@@ -179,7 +191,7 @@ public class CollectActivity extends AppCompatActivity implements GoogleApiClien
                 }
             }) {
                 @Override
-                protected Map<String, String> getParams() throws AuthFailureError {
+                protected Map<String, String> getParams() throws AuthFailureError {  // Puts up the CapturedImage along with tag as a request in HashMap
                     Map<String, String> param_map = new HashMap<String, String>();
                     param_map.put("email", emailID);
                     param_map.put("tag_id", tag.getTagID());
@@ -199,6 +211,8 @@ public class CollectActivity extends AppCompatActivity implements GoogleApiClien
     }
 
 
+    // When image is to be collected first Byte array is decoded and then while sending a successfull capturing request to PHP server
+    // it again needs to be converted back to the encoded format.
     public void getBase64EncodedString() {
         b = Bitmap.createBitmap(mPreview.getWidth(), mPreview.getHeight(), Bitmap.Config.ARGB_8888);
         c = new Canvas(b);
@@ -237,39 +251,23 @@ public class CollectActivity extends AppCompatActivity implements GoogleApiClien
     }
 
 
+    // Image Loader will load in the image from URL and rendder it on CameraView while collecting
     public void renderTagOnCameraView(){
         imageLoader = RequestQueueSingleton.getInstance(this).getImageLoader();
-        //NetworkImageView niv = new NetworkImageView(this);
-//            niv.getLayoutParams().height = 50;
-        //          niv.getLayoutParams().width = 50;
+
         niv = (ImageView)findViewById(R.id.collect_tagView);
         imageLoader.get(tag.getImageURL(),ImageLoader.getImageListener(niv, R.mipmap.default_image_gallery, R.mipmap.error_image_gallery));
-        /*
-        Log.d("response:", "Image width & height:" + niv.getWidth()+ " ," + niv.getHeight());
-        Matrix m = new Matrix();
-        niv.setScaleType(ImageView.ScaleType.MATRIX);
-        m.postRotate(45f, niv.getWidth()/2, niv.getHeight()/2);
-        niv.setImageMatrix(m);
-        Log.d("response:", "Image width & height:" + niv.getWidth()+ " ," + niv.getHeight());
-        */
-        //preview.addView(niv);
     }
 
 
     public Camera getCameraInstance() {
         Camera c = null;
+
+        // Permission for Camera
         try {
             if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                // TODO: Consider calling
-                //    ActivityCompat#requestPermissions
-                // here to request the missing permissions, and then overriding
-                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                //                                          int[] grantResults)
-                // to handle the case where the user grants the permission. See the documentation
-                // for ActivityCompat#requestPermissions for more details.
                 ActivityCompat.requestPermissions(this,
-                        new String[]{android.Manifest.permission.READ_CONTACTS},
-                        MY_CAMERA_REQUEST_CODE);
+                        new String[] {},MY_CAMERA_REQUEST_CODE);
 
             } else {
                 c = Camera.open(); // attempt to get a Camera instance
@@ -281,7 +279,7 @@ public class CollectActivity extends AppCompatActivity implements GoogleApiClien
     }
 
 
-
+    // onStop() for activity stopping preview of a camera
     @Override
     protected void onStop() {
         if(mCamera != null) {
@@ -301,15 +299,8 @@ public class CollectActivity extends AppCompatActivity implements GoogleApiClien
     public void onConnected(@Nullable Bundle bundle) {
         lr = LocationRequest.create();
         lr.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        lr.setInterval(1000);
+        lr.setInterval(1000); // Location updates for every 1000 ms
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
             return;
         }
 
@@ -322,15 +313,18 @@ public class CollectActivity extends AppCompatActivity implements GoogleApiClien
 
     }
 
+    // After every location update (1000 msec) onLocationChanged is called.
     @Override
     public void onLocationChanged(Location location) {
         if(location == null) {
-            //Toast.makeText(this, "Cant get current location!", Toast.LENGTH_LONG).show();
+            //Toast.makeText(this, "Can't get current location!", Toast.LENGTH_LONG).show();
         }
         else {
             lng = location.getLongitude();
             lat = location.getLatitude();
             distance = new float[1];
+
+            // Continuously monitoring the distance of the tag
             Location.distanceBetween(lat, lng, tag.getLatitude(), tag.getLongitude(), distance);
             distanceView.setText(String.valueOf(distance[0]));
             altitude = location.getAltitude();
@@ -344,6 +338,8 @@ public class CollectActivity extends AppCompatActivity implements GoogleApiClien
         Toast.makeText(this, "Connection to LocationServices failed!!", Toast.LENGTH_LONG).show();
     }
 
+
+    // This method is called when sensor values are changed
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
         //Toast.makeText(this, "onSensorChanged", Toast.LENGTH_SHORT).show();
@@ -357,29 +353,30 @@ public class CollectActivity extends AppCompatActivity implements GoogleApiClien
         }
 
         if (mags != null && accels != null) {
-            Rot = new float[9];
-            I = new float[9];
-            SensorManager.getRotationMatrix(Rot, I, accels, mags);
-            // Correct if screen is in Landscape
+            gRot = new float[9];
+            mRot = new float[9];
+
+            // Computing inclination matrix mRot and rotation matrix gRot. Used for transformation into actual co-ordinate systems.
+            SensorManager.getRotationMatrix(gRot, mRot, accels, mags);
 
             float[] outR = new float[9];
-            SensorManager.remapCoordinateSystem(Rot, SensorManager.AXIS_X, SensorManager.AXIS_Z, outR);
+            SensorManager.remapCoordinateSystem(gRot, SensorManager.AXIS_X, SensorManager.AXIS_Z, outR);
             SensorManager.getOrientation(outR, values);
 
             //Sensor values displayed at a sample of 1000 msec
-            if ((System.currentTimeMillis() - lastSaved) > ACCE_FILTER_DATA_MIN_TIME) {
+            if ((System.currentTimeMillis() - lastSaved) > MIN_TIME) {
                 lastSaved = System.currentTimeMillis();
-                azimuth = values[0] * 57.2957795f; //looks like we don't need this one
+                azimuth = values[0] * 57.2957795f; //Range -180 to +180
                 azimuthView.setText(String.valueOf(azimuth));
                 //Log.d("response:", "Azimuth: "+ azimuth);
-                mags = null; //retrigger the loop when things are repopulated
-                accels = null; ////retrigger the loop when things are repopulated
+                mags = null; // Again start the loop
+                accels = null;
             }
         }
     }
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int i) {
-
+        // We didn't find any use but has to be overriden because of implementing SensorEventListener
     }
 }

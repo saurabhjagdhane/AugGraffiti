@@ -50,6 +50,7 @@ import java.util.Map;
 
 import com.example.saurabh.auggraffiti.UserLocationService.TagBinder;
 
+@SuppressWarnings("deprecation")
 public class CameraActivity extends AppCompatActivity {
 
     private static Camera mCamera;

@@ -13,3 +13,6 @@ Settings->Apps->AugGraffiti->Permissions
 Enable Location, Storage, Camera 
 
 
+Augraffiti.apk which is the signed release apk is also included in the README folder. Please copy into it your device and install it to run the application.
+
+
